@@ -266,6 +266,58 @@ model=function(it){
  if(it.id==='stairs'){for(let n=0;n<12;n++){const t=n/11;box(g,w*.7,.08,d*.28,steelRef,0,.15+t*h*.72,-d*.3+t*d*.6)}}
  return g;
 };
+
+/* TANK ACCESS SYSTEMS: annular maintenance decks, stairs and guardrails */
+const umModelBeforeTankAccess=model;
+model=function(it){
+ const g=umModelBeforeTankAccess(it);
+ if(!['cilTank','cipTank','leachTank','tank','cyanide','tankwater','detox','firewater','fuel'].includes(it.id))return g;
+ const w=it.w,h=it.h,d=it.d,r=Math.min(w,d)*.505;
+ const deckY=h*.77,deckMat=mat(0x68777a,.82,.42),grateMat=mat(0x34464a,.7,.55),railMat=mat(0xd0d6d2,.72,.28),yellowMat=mat(0xe4ad35,.58,.34);
+ const deckR=r+.62,deckW=.82,deckN=32;
+ for(let n=0;n<deckN;n++){
+  const a=(n+.5)*Math.PI*2/deckN,seg=(Math.PI*2*deckR/deckN)*.96;
+  const p=box(g,seg,.12,deckW,deckMat,Math.cos(a)*deckR,deckY,Math.sin(a)*deckR);p.rotation.y=-a;
+  beam(g,[Math.cos(a)*(r+.12),deckY-.12,Math.sin(a)*(r+.12)],[Math.cos(a)*(deckR+deckW*.48),deckY-.12,Math.sin(a)*(deckR+deckW*.48)],.035,steelRef);
+ }
+ for(let n=0;n<deckN;n++){
+  const a=n*Math.PI*2/deckN,x=Math.cos(a)*(deckR+deckW*.48),z=Math.sin(a)*(deckR+deckW*.48);
+  beam(g,[x,deckY+.08,z],[x,deckY+1.16,z],.045,railMat);
+  box(g,.12,.16,.12,yellowMat,x,deckY+.12,z);
+ }
+ for(let n=0;n<deckN;n++){
+  const a=(n+.5)*Math.PI*2/deckN,b=(n+1)*Math.PI*2/deckN;
+  for(const yy of [deckY+.62,deckY+1.12])beam(g,[Math.cos(a)*(deckR+deckW*.48),yy,Math.sin(a)*(deckR+deckW*.48)],[Math.cos(b)*(deckR+deckW*.48),yy,Math.sin(b)*(deckR+deckW*.48)],.035,railMat);
+ }
+ for(let n=0;n<4;n++){
+  const a=n*Math.PI/2,x=Math.cos(a)*(r+.42),z=Math.sin(a)*(r+.42);
+  beam(g,[x,.12,z],[x,deckY-.08,z],.075,steelRef);
+  beam(g,[Math.cos(a)*r,deckY-.1,Math.sin(a)*r],[x,deckY-.1,z],.055,steelRef);
+ }
+ const side=(Math.round(Math.abs(it.x||0)/7)%2)*Math.PI/2,ux=Math.cos(side),uz=Math.sin(side),tx=-uz,tz=ux;
+ const outer=deckR+2.7,inner=deckR+.18,steps=11,stairW=1.05;
+ const p0=[ux*outer,.18,uz*outer],p1=[ux*inner,deckY-.08,uz*inner];
+ beam(g,[p0[0]-tx*stairW*.55,p0[1],p0[2]-tz*stairW*.55],[p1[0]-tx*stairW*.55,p1[1],p1[2]-tz*stairW*.55],.075,steelRef);
+ beam(g,[p0[0]+tx*stairW*.55,p0[1],p0[2]+tz*stairW*.55],[p1[0]+tx*stairW*.55,p1[1],p1[2]+tz*stairW*.55],.075,steelRef);
+ for(let n=0;n<steps;n++){
+  const t=(n+.5)/steps,x=ux*(outer+(inner-outer)*t),z=uz*(outer+(inner-outer)*t),y=.18+(deckY-.26)*t;
+  const tread=box(g,stairW,.085,.34,grateMat,x,y,z);tread.rotation.y=-side;
+ }
+ for(const sign of [-1,1]){
+  const ox=tx*stairW*.62*sign,oz=tz*stairW*.62*sign;
+  beam(g,[p0[0]+ox,.18,p0[2]+oz],[p1[0]+ox,deckY+1.05,p1[2]+oz],.045,railMat);
+  beam(g,[p0[0]+ox,.72,p0[2]+oz],[p1[0]+ox,deckY+.52,p1[2]+oz],.032,railMat);
+  for(let n=0;n<=steps;n++){
+   const t=n/steps,x=ux*(outer+(inner-outer)*t)+ox,z=uz*(outer+(inner-outer)*t)+oz,y=.18+(deckY-.18)*t;
+   beam(g,[x,y,z],[x,y+1.02,z],.04,railMat);
+  }
+ }
+ const landing=box(g,1.35,.12,1.15,deckMat,ux*(deckR+.12),deckY,uz*(deckR+.12));landing.rotation.y=-side;
+ cyl(g,.22,.22,.09,yellowMat,0,h*.785,0,24);
+ for(let n=0;n<8;n++){const a=n*Math.PI/4;cyl(g,.055,.055,.22,steelRef,Math.cos(a)*r*.72,h*.81,Math.sin(a)*r*.72,12)}
+ return g;
+};
+
 const umTemplateBeforeReference=template;
 template=function(kind){
  if(kind!=='reference')return umTemplateBeforeReference(kind);
