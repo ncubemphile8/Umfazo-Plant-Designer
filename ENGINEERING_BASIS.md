@@ -46,3 +46,43 @@ These are user-defined allowances, not reagent consumption predictions or a comp
 ## Not modelled
 
 The current release does not calculate pump curves, pipe diameters, friction/minor losses, NPSH, pressure ratings, structural loads, foundation design, geotechnical stability, electrical load flow, process control, safety integrity, cyanide detox performance, environmental discharge, or construction quantities. Those require separate, validated engineering work.
+
+## Added engineering screening calculators
+
+### Pipe friction and pump duty
+The Engineering tab uses Darcy–Weisbach:
+- Pipe area = πD²/4.
+- Mean velocity = volumetric flow / area.
+- Reynolds number = velocity × diameter / kinematic viscosity (water assumption, approximately 1.004 × 10⁻⁶ m²/s).
+- Friction factor = laminar 64/Re or Swamee–Jain turbulent approximation.
+- Major loss = f × (L/D) × velocity²/(2g).
+- Minor loss = ΣK × velocity²/(2g).
+- Total dynamic head = static head + major loss + minor loss.
+- Hydraulic power = ρgQH; estimated shaft and motor input divide by entered efficiencies.
+- NPSH margin = entered available NPSH − vendor-required NPSH.
+
+The current calculator assumes water density and viscosity, one straight pipe, one flow rate and user-entered aggregate K. It is not a network solver or pump selection.
+
+### Electrical demand
+Connected kW is the sum of entered equipment nameplate ratings. Demand kW applies the entered diversity factor. Preliminary transformer kVA applies the entered power factor and design margin. Starting current, voltage drop, fault level, protection and harmonics are excluded.
+
+### Beam screening
+For a simply supported beam with uniform load:
+- Maximum moment = wL²/8.
+- Maximum shear = wL/2.
+- Elastic bending stress = M/Z.
+- Midspan deflection = 5wL⁴/(384EI).
+
+The user supplies section properties and material yield strength. No code resistance factors, stability, buckling, connections, load combinations or fatigue checks are included.
+
+### Foundation allowance
+The tool reports a concept pad plan area and concrete volume using equipment footprint plus a nominal perimeter allowance and user-entered thickness. It does not calculate actual foundation loads or verify bearing, settlement, punching shear, sliding, overturning, reinforcement or geotechnical suitability.
+
+### First-order leach kinetic curve
+For a user-fitted rate constant k and ultimate recovery R∞:
+- R(t) = R∞ × (1 − exp(−kt)).
+
+Use only to fit representative bottle-roll or pilot data. It is not a metallurgical prediction.
+
+### Preliminary cost plan
+Steel mass, steel rate, concrete rate and installation allowance are user inputs. No live vendor prices, freight, tax, equipment purchase price, commissioning or contingency are included.
