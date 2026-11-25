@@ -66,16 +66,68 @@ let edges=new THREE.BoxHelper(g,0x8a9890);g.add(edges);return g}
 function rebuild(it){let old=meshes.get(it.uid);if(old)scene.remove(old);let g=model(it);g.position.set(it.x,it.y,it.z);g.rotation.y=it.rot||0;g.userData.itemUid=it.uid;scene.add(g);meshes.set(it.uid,g)}
 function animatePlant(dt){simElapsed+=dt;for(const it of items){const g=meshes.get(it.uid);if(!g)continue;const active=it.running===true;if(active)g.traverse(o=>{if(o.userData.spinSpeed)o.rotation.x+=(o.userData.spinSpeed||8)*dt});if(g.userData.smoke)g.userData.smoke.forEach((p,i)=>{let phase=(simElapsed*.65+i*.2)%2.4;p.visible=active;p.position.y=g.userData.exhaust.y+phase*.7;p.position.x=g.userData.exhaust.x+Math.sin(simElapsed*1.8+i)*phase*.08;p.material.opacity=active?Math.max(0,.25-phase*.09):0})}}
 function add(id,x=0,z=0,record=true){let d=lib.find(a=>a.id===id);if(!d)return;if(record)snap();let it={uid:'u'+Date.now()+Math.random().toString(36).slice(2,7),id,name:d.name,tag:'',x,y:terrainHeight(x,z),z,rot:0,w:d.w,h:d.h,d:d.d,kw:'',duty:'',notes:'',running:false};items.push(it);rebuild(it);selected=it.uid;drawInspector();dirty();toast(d.name+' placed');return it}
-function terrainHeight(x,z){if(surveyGrid&&terrainOn){let g=surveyGrid,fx=clamp((x-g.minX)/(g.maxX-g.minX)*(g.nx-1),0,g.nx-1),fz=clamp((z-g.minZ)/(g.maxZ-g.minZ)*(g.nz-1),0,g.nz-1),ix=Math.floor(fx),iz=Math.floor(fz),jx=Math.min(g.nx-1,ix+1),jz=Math.min(g.nz-1,iz+1),tx=fx-ix,tz=fz-iz,a=g.values[iz*g.nx+ix],b=g.values[iz*g.nx+jx],c=g.values[jz*g.nx+ix],d=g.values[jz*g.nx+jx];return((a*(1-tx)+b*tx)*(1-tz)+(c*(1-tx)+d*tx)*tz)*terrainExaggeration}return terrainOn?Math.max(-.6,(Math.sin(x*.055)*1.5+Math.cos(z*.07)*1.15+Math.sin((x+z)*.035)*1.2+Math.cos(Math.sqrt(x*x+z*z)*.045)*1.6)*terrainExaggeration):0}
+function terrainHeight(x,z){
+ if(surveyGrid&&terrainOn){let g=surveyGrid,fx=clamp((x-g.minX)/(g.maxX-g.minX)*(g.nx-1),0,g.nx-1),fz=clamp((z-g.minZ)/(g.maxZ-g.minZ)*(g.nz-1),0,g.nz-1),ix=Math.floor(fx),iz=Math.floor(fz),jx=Math.min(g.nx-1,ix+1),jz=Math.min(g.nz-1,iz+1),tx=fx-ix,tz=fz-iz,a=g.values[iz*g.nx+ix],b=g.values[iz*g.nx+jx],c=g.values[jz*g.nx+ix],d=g.values[jz*g.nx+jx];return((a*(1-tx)+b*tx)*(1-tz)+(c*(1-tx)+d*tx)*tz)*terrainExaggeration}
+ if(!terrainOn)return 0;
+ const dist=Math.sqrt((x*.92)**2+(z*1.08)**2),edge=clamp((dist-58)/92,0,1),hills=edge*edge*(5.5+2.2*Math.sin(x*.025+z*.018)+1.5*Math.cos(z*.035-x*.016));
+ const undulation=(Math.sin(x*.043)*.45+Math.cos(z*.052)*.38+Math.sin((x+z)*.027)*.32)*(.22+edge*.8);
+ return Math.max(-.15,hills+undulation)*terrainExaggeration
+}
 function buildSurveyGrid(points){let minX=Math.min(...points.map(p=>p.x)),maxX=Math.max(...points.map(p=>p.x)),minZ=Math.min(...points.map(p=>p.z)),maxZ=Math.max(...points.map(p=>p.z)),minY=Math.min(...points.map(p=>p.y)),maxY=Math.max(...points.map(p=>p.y)),cx=(minX+maxX)/2,cz=(minZ+maxZ)/2;surveyPoints=points.map(p=>({x:p.x-cx,z:p.z-cz,y:p.y-minY}));minX-=cx;maxX-=cx;minZ-=cz;maxZ-=cz;let nx=80,nz=80,values=new Array(nx*nz),spanX=Math.max(1e-6,maxX-minX),spanZ=Math.max(1e-6,maxZ-minZ);for(let iz=0;iz<nz;iz++)for(let ix=0;ix<nx;ix++){let x=minX+spanX*ix/(nx-1),z=minZ+spanZ*iz/(nz-1),near=surveyPoints.map(p=>({p,d:(p.x-x)**2+(p.z-z)**2})).sort((a,b)=>a.d-b.d).slice(0,8);if(near[0].d<1e-10){values[iz*nx+ix]=near[0].p.y;continue}let sw=0,sy=0;near.forEach(o=>{let w=1/Math.max(o.d,1e-8);sw+=w;sy+=w*o.p.y});values[iz*nx+ix]=sy/sw}surveyGrid={minX,maxX,minZ,maxZ,nx,nz,values};surveyMeta={pointCount:points.length,minElevation:minY,maxElevation:maxY,spanX,spanZ}}
 function loadSurveyCSV(file){let reader=new FileReader();reader.onload=()=>{try{let lines=String(reader.result).trim().split(/\r?\n/).filter(Boolean),rows=lines.map(l=>l.split(/[;,\t]/).map(v=>v.trim())),start=rows[0].slice(0,3).some(v=>!Number.isFinite(Number(v)))?1:0,pts=rows.slice(start).map(r=>({x:Number(r[0]),z:Number(r[1]),y:Number(r[2])})).filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.z)&&Number.isFinite(p.y));if(pts.length<3)throw new Error('At least three valid XYZ survey points are required.');let totalPoints=pts.length;if(pts.length>2500){let step=Math.ceil(pts.length/2500);pts=pts.filter((p,i)=>i%step===0)}buildSurveyGrid(pts);terrainOn=true;makeTerrain();items.forEach(i=>{i.y=terrainHeight(i.x,i.z);rebuild(i)});redraw();dirty();drawSitePanel();toast('Survey terrain imported: '+pts.length+' of '+totalPoints+' XYZ points')}catch(e){toast('Terrain import failed: '+e.message)}};reader.readAsText(file)}
-function makeTerrain(){if(terrainGroup)scene.remove(terrainGroup);terrainGroup=new THREE.Group();let N=64,S=surveyGrid?Math.max(surveyGrid.maxX-surveyGrid.minX,surveyGrid.maxZ-surveyGrid.minZ)*1.1:180,geo=new THREE.PlaneGeometry(S,S,N,N),p=geo.attributes.position;for(let i=0;i<p.count;i++){let x=p.getX(i),z=-p.getY(i);p.setZ(i,terrainHeight(x,z))}geo.computeVertexNormals();let terrain=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:0x64785c,roughness:.98,metalness:0,vertexColors:false}));terrain.rotation.x=-Math.PI/2;terrain.receiveShadow=true;terrainGroup.add(terrain);
-let roadMat=mat(0x776d5d,.02,.98);function road(points,width){let curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(p[0],terrainHeight(p[0],p[1])+.05,p[1])));let pts=curve.getPoints(56),verts=[],indices=[];for(let i=0;i<pts.length;i++){let tangent=curve.getTangent(i/99),side=new THREE.Vector3(-tangent.z,0,tangent.x).normalize().multiplyScalar(width/2);verts.push(pts[i].x+side.x,pts[i].y+.04,pts[i].z+side.z,pts[i].x-side.x,pts[i].y+.04,pts[i].z-side.z);if(i<pts.length-1){let a=i*2;indices.push(a,a+1,a+2,a+1,a+3,a+2)}}let g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));g.setIndex(indices);g.computeVertexNormals();terrainGroup.add(new THREE.Mesh(g,roadMat))}
-road([[-75,28],[-40,18],[-12,10],[18,8],[48,15],[78,28]],6);road([[-35,-70],[-25,-40],[-12,-10],[0,8]],4);
-let rockMat=[mat(0x69735c,.05,.95),mat(0x817968,.05,.95),mat(0x596953,.05,.98)],treeMat=mat(0x38543c,.05,.95),trunk=mat(0x514638,.05,.95);
-for(let i=0;i<42;i++){let x=((i*37)%173)-86,z=((i*61)%173)-86;if(Math.abs(x)<28&&Math.abs(z)<24)continue;let y=terrainHeight(x,z);let r=.5+(i%5)*.16;let tree=new THREE.Group();cyl(tree,.13,.18,1.2,trunk,0,.6,0,7);let crown=new THREE.Mesh(new THREE.ConeGeometry(r,1.8,7),treeMat);crown.position.y=1.8;crown.castShadow=true;tree.add(crown);tree.position.set(x,y,z);terrainGroup.add(tree)}
-for(let i=0;i<28;i++){let x=((i*43)%165)-82,z=((i*29)%165)-82;if(Math.abs(x)<30&&Math.abs(z)<26)continue;let r=.4+(i%7)*.22,rock=new THREE.Mesh(new THREE.DodecahedronGeometry(r,0),rockMat[i%3]);rock.position.set(x,terrainHeight(x,z)+r*.25,z);rock.scale.y=.5;rock.castShadow=true;terrainGroup.add(rock)}
-scene.add(terrainGroup);terrainGroup.visible=terrainOn}
+function makeTerrain(){
+ if(terrainGroup)scene.remove(terrainGroup);
+ terrainGroup=new THREE.Group();
+ const N=surveyGrid?80:112;
+ const SX=surveyGrid?Math.max(260,(surveyGrid.maxX-surveyGrid.minX)+150):420;
+ const SZ=surveyGrid?Math.max(240,(surveyGrid.maxZ-surveyGrid.minZ)+150):340;
+ const geo=new THREE.PlaneGeometry(SX,SZ,N,N),p=geo.attributes.position;
+ for(let i=0;i<p.count;i++){const x=p.getX(i),z=-p.getY(i);p.setZ(i,terrainHeight(x,z))}
+ geo.computeVertexNormals();
+ const terrain=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:0x9b8b69,roughness:1,metalness:0}));
+ terrain.rotation.x=-Math.PI/2;terrain.receiveShadow=true;terrainGroup.add(terrain);
+ const roadMat=mat(0x78664f,.01,.99),padMat=mat(0x9a8b73,.02,.98);
+ function road(points,width,material=roadMat){
+  const curve=new THREE.CatmullRomCurve3(points.map(q=>new THREE.Vector3(q[0],terrainHeight(q[0],q[1])+.09,q[1])));
+  const pts=curve.getPoints(90),verts=[],indices=[];
+  for(let i=0;i<pts.length;i++){
+   const tangent=curve.getTangent(i/(pts.length-1)),side=new THREE.Vector3(-tangent.z,0,tangent.x).normalize().multiplyScalar(width/2);
+   verts.push(pts[i].x+side.x,pts[i].y+.025,pts[i].z+side.z,pts[i].x-side.x,pts[i].y+.025,pts[i].z-side.z);
+   if(i<pts.length-1){const a=i*2;indices.push(a,a+1,a+2,a+1,a+3,a+2)}
+  }
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));g.setIndex(indices);g.computeVertexNormals();
+  const m=new THREE.Mesh(g,material);m.receiveShadow=true;terrainGroup.add(m)
+ }
+ // Broad, gently graded mine pad around the plant, with a dusty haul/access road.
+ const pad=new THREE.Mesh(new THREE.PlaneGeometry(245,135),padMat);pad.rotation.x=-Math.PI/2;pad.position.set(24,.025,4);pad.receiveShadow=true;terrainGroup.add(pad);
+ road([[-175,72],[-125,62],[-90,42],[-55,30],[-18,29],[28,35],[75,52],[130,75],[178,92]],8);
+ road([[-150,-100],[-122,-68],[-95,-38],[-76,-5],[-62,30]],5);
+ road([[118,-120],[104,-80],[95,-42],[110,-8],[145,18]],5);
+ const rockMats=[mat(0x746b5a,.02,.98),mat(0x8a806d,.02,.98),mat(0x625e50,.02,.99)];
+ const leafMats=[mat(0x294a32,.02,.98),mat(0x35583a,.02,.98),mat(0x456442,.02,.98),mat(0x526b45,.02,.98)];
+ const trunk=mat(0x514638,.02,.99);
+ // Dense belts of rounded indigenous-looking trees frame the site like the wooded hills in the reference photos.
+ for(let i=0;i<168;i++){
+  const a=i*2.399963,ring=104+(i%7)*13;
+  const x=Math.cos(a)*ring*1.22+(i%5-2)*4,z=Math.sin(a)*ring*.9+(i%7-3)*3;
+  if(Math.abs(x)<83&&Math.abs(z)<53)continue;
+  const y=terrainHeight(x,z),r=1.8+(i%6)*.42,tree=new THREE.Group();
+  cyl(tree,.22,.32,2.1,trunk,0,1.05,0,8);
+  for(let k=0;k<4;k++){
+   const crown=new THREE.Mesh(new THREE.IcosahedronGeometry(r*(k===0?1.05:.76),1),leafMats[(i+k)%leafMats.length]);
+   crown.position.set((k%2-.5)*r*.38,2.1+(k%3)*.8,((k*3)%3-1)*r*.25);
+   crown.scale.set(1,.78,.92);crown.castShadow=true;tree.add(crown)
+  }
+  tree.position.set(x,y,z);terrainGroup.add(tree)
+ }
+ for(let i=0;i<72;i++){
+  const x=((i*47)%365)-182,z=((i*83)%285)-142;
+  if(Math.abs(x)<91&&Math.abs(z)<60)continue;
+  const r=.45+(i%7)*.28,rock=new THREE.Mesh(new THREE.DodecahedronGeometry(r,0),rockMats[i%3]);
+  rock.position.set(x,terrainHeight(x,z)+r*.22,z);rock.scale.y=.48;rock.castShadow=true;terrainGroup.add(rock)
+ }
+ scene.add(terrainGroup);terrainGroup.visible=terrainOn
+}
 function redraw(){
  pipeMeshes.forEach(o=>scene.remove(o));pipeMeshes=[];
  pipes.forEach((p,idx)=>{
