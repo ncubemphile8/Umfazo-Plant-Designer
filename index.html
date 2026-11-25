@@ -184,6 +184,8 @@ const umBaseRedraw=redraw;
 redraw=function(){
  umBaseRedraw();
  pipeMeshes.forEach((m,idx)=>{
+  const p=pipes[idx],from=p&&items.find(i=>i.uid===p.a),to=p&&items.find(i=>i.uid===p.b);
+  if(from&&to){const A=new THREE.Vector3(from.x,from.y+from.h*.55,from.z),B=new THREE.Vector3(to.x,to.y+to.h*.55,to.z);m.userData.flowCurve=new THREE.CatmullRomCurve3([A,new THREE.Vector3(A.x,A.y,B.z),new THREE.Vector3(B.x,A.y,B.z),B]);m.userData.from=from.uid;m.userData.to=to.uid}
   if(m.userData.umDots)return;
   m.userData.umDots=[];
   for(let n=0;n<9;n++){let dot=new THREE.Mesh(new THREE.SphereGeometry(.095,9,7),new THREE.MeshStandardMaterial({color:0x83e6d5,emissive:0x145b54,emissiveIntensity:.7}));dot.visible=false;m.add(dot);m.userData.umDots.push(dot)}
@@ -211,6 +213,7 @@ animatePlant=function(dt){
 const umBaseDrawInspector=drawInspector;
 drawInspector=function(){
  umBaseDrawInspector();
+ if(activeTab!=='design')return;
  const it=items.find(i=>i.uid===selected);
  if(!it){const panel=$('inspector');if(!panel)return;const section=document.createElement('section');section.className='prop';section.innerHTML='<h4>PLANT ALARMS & SAFETY</h4><div class="muted">'+(umAlarms.length?umAlarms.map(a=>'<div class="scenario"><div><b>'+esc(a.unit)+'</b><br><small>'+esc(a.time)+' · '+esc(a.msg)+'</small></div><span class="pill">EVENT</span></div>').join(''):'No alarms or events recorded')+'</div><button class="btn" id="umResetEStop">Reset emergency stop</button>';panel.appendChild(section);$('umResetEStop').onclick=()=>{emergencyLatched=false;umAlarms=umAlarms.filter(a=>a.msg!=='EMERGENCY STOP activated');dirty();drawInspector();toast('Emergency stop reset')};return}
  const panel=$('inspector');if(!panel)return;const section=document.createElement('section');section.className='prop';section.innerHTML='<h4>LIVE DRIVE & PROCESS CONTROLS</h4><div class="stats"><div class="stat"><b>'+(it.fault?'FAULT':it.running?'RUNNING':'STOPPED')+'</b><small>Unit state</small></div><div class="stat"><b>'+fmt(it.speedPct??75,0)+'%</b><small>Drive speed</small></div></div><button class="btn primary" id="umUnitPower">'+(it.running?'■ Stop unit':'▶ Start unit')+'</button> <button class="btn" id="umFault">'+(it.fault?'Reset fault':'Inject fault')+'</button><div class="field"><label>VSD / drive speed · %</label><input id="umSpeed" type="range" min="0" max="120" value="'+(it.speedPct??75)+'"></div><div class="field"><label>Motor load · %</label><input id="umLoad" type="range" min="0" max="100" value="'+(it.loadPct??65)+'"></div>'+(['cilTank','cipTank','leachTank','tank','detox'].includes(it.id)?'<div class="field"><label>Tank liquid level · %</label><input id="umLevel" type="range" min="5" max="95" value="'+(it.levelPct??65)+'"></div>':'')+(['pump','standby','tails'].includes(it.id)?'<div class="stats"><div class="stat"><b>'+fmt(it.flowM3h||0,1)+'</b><small>Flow · m³/h</small></div><div class="stat"><b>'+fmt(it.pressureBar||0,2)+'</b><small>Pressure · bar</small></div></div>':'')+(it.id==='generator'?'<div class="stats"><div class="stat"><b>'+fmt(it.fuelPct??85,1)+'%</b><small>Fuel remaining</small></div><div class="stat"><b>'+fmt(it.temperatureC??25,1)+'°C</b><small>Engine temperature</small></div></div><div class="field"><label>Fuel top-up / level · %</label><input id="umFuel" type="range" min="0" max="100" value="'+(it.fuelPct??85)+'"></div>':'')+'<p class="note">Operational signals are illustrative and are not calibrated process-control or safety-instrumented functions.</p>';
@@ -228,6 +231,7 @@ function umStartPlant(){
  const b=$('plantPower');if(b)b.textContent=start?'■ Stop plant':'▶ Start plant';dirty();drawInspector();toast(start?'Plant simulation started':'Plant simulation stopped');
 }
 function umEmergencyStop(){
+ if(emergencyLatched){emergencyLatched=false;umAlarms=umAlarms.filter(a=>a.msg!=='EMERGENCY STOP activated');dirty();drawInspector();toast('Emergency stop reset — restart is permitted');return}
  emergencyLatched=true;items.forEach(i=>{i.running=false;umAlarm(i,'EMERGENCY STOP activated')});
  const b=$('plantPower');if(b)b.textContent='▶ Start plant';dirty();drawInspector();toast('Emergency stop latched — all drives stopped');
 }
