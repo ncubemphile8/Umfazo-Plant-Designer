@@ -165,6 +165,10 @@ model=function(it){
  if(it.id==='mill'){
   for(let x of [-w*.39,w*.39]){let gear=cyl(g,d*.48,d*.48,.13,bright,x,h*.5,0,40);gear.rotation.z=Math.PI/2;gear.userData.spinSpeed=1.1;g.userData.moving=(g.userData.moving||[]).concat([gear]);for(let n=0;n<20;n++){let a=n*Math.PI/10;box(g,.13,.1,.14,steelM,x+Math.cos(a)*d*.48,h*.5+Math.sin(a)*d*.48,0)}}
  }
+ if(['hopper','bin','crusher','mill'].includes(it.id)){
+  g.userData.umOreProcess=[];const count=it.id==='mill'?18:it.id==='crusher'?12:8;
+  for(let n=0;n<count;n++){const ore=new THREE.Mesh(new THREE.DodecahedronGeometry(.11+(n%4)*.035,0),mat(n%2?0x92724e:0x655a49,.02,.96));ore.position.set((Math.random()-.5)*w*.38,.35+(n%4)*.12,(Math.random()-.5)*d*.38);ore.castShadow=true;g.add(ore);g.userData.umOreProcess.push(ore)}
+ }
  if(it.id==='generator'){
   // Exhaust stack, radiator grille, engine block details; existing model supplies smoke particles.
   for(let z=-d*.28;z<=d*.29;z+=.1)box(g,.025,h*.32,.025,steelM,-w*.39,h*.43,z);
@@ -197,7 +201,8 @@ animatePlant=function(dt){
   const g=meshes.get(it.uid);if(!g)continue;
   const active=it.running&&!it.fault&&!emergencyLatched;
   if(g.userData.umOre)g.userData.umOre.forEach((o,i)=>{o.position.x=-it.w*.43+((umFlowClock*(it.speedPct||75)/75*.18+i/15)%1)*it.w*.86});
-  if(g.userData.umLiquid){const level=clamp(it.levelPct??65,5,95)/100;g.userData.umLiquid.scale.y=level;g.userData.umLiquid.position.y=.1+it.h*.55*level/2}
+  if(g.userData.umOreProcess)g.userData.umOreProcess.forEach((o,i)=>{const t=umFlowClock*(it.speedPct||75)/75+i*.31;if(it.id==='mill'){const radius=Math.min(it.w,it.d)*.22;o.position.set(Math.sin(t*1.8)*radius,.35+Math.abs(Math.sin(t*2.3))*.65,Math.cos(t*1.8)*radius);o.rotation.set(t,t*.7,t*.4)}else if(it.id==='crusher'){o.position.set(Math.sin(t*2.4+i)*it.w*.13,.28+Math.abs(Math.sin(t*4+i))*.48,Math.cos(t*2.1+i)*it.d*.14);o.rotation.set(t*2,t,t*.5)}else{o.position.x=Math.sin(t+i)*it.w*.12;o.position.y=.35+Math.abs(Math.sin(t*2+i))*.2;o.position.z=Math.cos(t+i)*it.d*.12}});
+  if(g.userData.umLiquid){let inflow=pipes.filter(p=>p.b===it.uid&&items.find(x=>x.uid===p.a)?.running).length,outflow=pipes.filter(p=>p.a===it.uid&&items.find(x=>x.uid===p.b)?.running).length;if(inflow||outflow)it.levelPct=clamp((it.levelPct??65)+(inflow-outflow)*dt*1.2,5,95);const level=clamp(it.levelPct??65,5,95)/100;g.userData.umLiquid.scale.y=level;g.userData.umLiquid.position.y=.1+it.h*.55*level/2}
   if(['pump','standby','tails'].includes(it.id)){it.flowM3h=active?Math.max(0,(+it.flowSetpoint||project.tph*.8)*(it.speedPct||75)/75):0;it.pressureBar=active?clamp(.5+it.flowM3h*.025,.2,8):0}
   if(it.id==='generator'&&active){it.fuelPct=Math.max(0,(it.fuelPct??85)-dt*.002*(it.loadPct??65));it.temperatureC=clamp((it.temperatureC??25)+dt*((it.loadPct??65)-35)*.025,25,110);if(it.fuelPct<=0){it.running=false;umAlarm(it,'Fuel exhausted — generator stopped')}}
  }
