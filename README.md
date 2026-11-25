@@ -15,7 +15,7 @@ https://umfazo-plant-designer-studio.vercel.app
 - Place, move, rotate, resize and edit equipment; edit tags, dimensions, elevations, motor nameplate kW, duties and notes
 - Conceptual process connections between equipment
 - Starter CIL, CIP, full gold plant and mine/shaft arrangements
-- Procedural terrain, hills, rock outcrops, vegetation and access roads; import surveyed XYZ CSV points (X,Y,Z in metres) to interpolate a site surface, with adjustable terrain relief
+- Procedural terrain, hills, rock outcrops, vegetation and access roads; import XYZ CSV, projected GeoTIFF DEM, uncompressed LAS point clouds or 3D GeoJSON contours to interpolate a site surface, with adjustable terrain relief
 - Illustrative ore-dump profiles and adjustable feed tonnage, grade, recovery, operating schedule, availability, slurry solids, solids SG, leach residence time, tank reference volume, Bond work index, feed/product size, water and reagent allowances
 - Indicative gold mass balance, stockpile life, slurry flow, preliminary leach volume, reference tank count and simplified Bond grinding-energy estimate
 - 10 / 25 / 50 / 100 t/h scenario comparison
@@ -28,7 +28,7 @@ https://umfazo-plant-designer-studio.vercel.app
 This is a concept design and screening application, not a construction-ready engineering package or a validated process simulator.
 
 - Terrain is procedurally generated, not surveyed. Survey import currently accepts XYZ CSV point data and interpolates a concept surface; direct DEM/DTM raster, LAS/LAZ point-cloud and contour-file import is not implemented.
-- Pipe connections remain conceptual. The Engineering tab calculates a single user-defined pipe duty using water properties and Darcy–Weisbach assumptions; it does not solve a multi-branch hydraulic network, pump curve intersection, slurry rheology, NPSH system curve, transient surge or vendor selection.
+- Pipe connections remain conceptual. The Engineering tab includes a single-line Darcy–Weisbach duty, optional vendor pump-curve CSV intersection and a three-branch equal-header parallel flow split. These screening tools assume water and do not solve arbitrary network topology, slurry rheology, transient surge or full vendor pump selection.
 - Process calculations are simplified screening estimates. The optional first-order leach curve is a fit-to-test-data calculator; it does not predict ore-specific leach, adsorption, elution, electrowinning or smelting performance.
 - The Bond energy estimate depends on user-entered BWI and size assumptions and is not a mill guarantee or equipment selection.
 - Tank volume estimates use simplified geometric working-volume allowances. The beam and foundation tools are idealised preliminary screening only; no code-compliant member capacity, connections, tank mechanical, reinforcement, bearing, settlement, seismic, wind, fatigue or nozzle design is implied.
