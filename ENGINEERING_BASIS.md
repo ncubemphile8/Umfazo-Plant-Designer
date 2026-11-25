@@ -24,7 +24,7 @@ For solids mass fraction S and assumed solids specific gravity SG:
 - Slurry volumetric flow (m³/h) = nominal dry-solids feed rate × slurry volume per tonne.
 - Preliminary required leach working volume (m³) = slurry flow × user-entered residence time (h).
 
-Reference tank count = ceiling(required volume ÷ (user-entered reference tank gross volume × 0.85). Placed tank volume is approximated from cylindrical dimensions, 76% of shell height and an 85% working allowance.
+Reference tank count = ceiling(required volume ÷ (user-entered reference tank gross volume × 0.85)). Placed tank volume is approximated from cylindrical dimensions, 76% of shell height and an 85% working allowance.
 
 This is not a tank mechanical design. Actual slurry density, rheology, short-circuiting, oxygen transfer, mixing power, freeboard, internals and operating strategy must be established by process engineering.
 
