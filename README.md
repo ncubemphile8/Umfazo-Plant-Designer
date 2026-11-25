@@ -11,11 +11,11 @@ https://umfazo-plant-designer-studio.vercel.app
 ## Current capabilities
 
 - Three.js 3D workspace with orbit, pan, zoom, top view, fit-to-layout and shadowed rendering
-- Plant equipment library for crushing, milling, screening, classification, CIL/CIP tanks, thickeners, carbon screens, elution, pumps, blowers, boilers, conveyors, headgear, shafts, hoists, steelwork, buildings, utilities and mine services
+- Plant equipment library for crushing, milling, screening, classification, distinct CIL leach/adsorption tanks, CIP leach tanks and CIP adsorption tanks, thickeners, carbon screens, elution, pumps, blowers, boilers, conveyors, headgear, shafts, hoists, steelwork, buildings, utilities and mine services
 - Place, move, rotate, resize and edit equipment; edit tags, dimensions, elevations, motor nameplate kW, duties and notes
 - Conceptual process connections between equipment
 - Starter CIL, CIP, full gold plant and mine/shaft arrangements
-- Procedural terrain, hills, rock outcrops, vegetation and access roads; terrain relief can be adjusted
+- Procedural terrain, hills, rock outcrops, vegetation and access roads; import surveyed XYZ CSV points (X,Y,Z in metres) to interpolate a site surface, with adjustable terrain relief
 - Illustrative ore-dump profiles and adjustable feed tonnage, grade, recovery, operating schedule, availability, slurry solids, solids SG, leach residence time, tank reference volume, Bond work index, feed/product size, water and reagent allowances
 - Indicative gold mass balance, stockpile life, slurry flow, preliminary leach volume, reference tank count and simplified Bond grinding-energy estimate
 - 10 / 25 / 50 / 100 t/h scenario comparison
@@ -26,7 +26,7 @@ https://umfazo-plant-designer-studio.vercel.app
 
 This is a concept design and screening application, not a construction-ready engineering package or a validated process simulator.
 
-- Terrain is procedurally generated, not surveyed. Import of survey contours, DEM/DTM, drone surfaces or point clouds is not currently implemented.
+- Terrain is procedurally generated, not surveyed. Survey import currently accepts XYZ CSV point data and interpolates a concept surface; direct DEM/DTM raster, LAS/LAZ point-cloud and contour-file import is not implemented.
 - Pipe connections are visual concept links; pipe sizing, hydraulic grade lines, pressure losses, pump curves and network balancing are not implemented.
 - Process calculations are simplified screening estimates. Recovery is user-entered; no ore-specific kinetic, leach, adsorption, elution, electrowinning or smelting model is implied.
 - The Bond energy estimate depends on user-entered BWI and size assumptions and is not a mill guarantee or equipment selection.
