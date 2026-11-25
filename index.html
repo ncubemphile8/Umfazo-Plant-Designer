@@ -318,16 +318,47 @@ model=function(it){
  return g;
 };
 
+
 const umTemplateBeforeReference=template;
 template=function(kind){
  if(kind!=='reference')return umTemplateBeforeReference(kind);
- snap();items.forEach(i=>{const m=meshes.get(i.uid);if(m)scene.remove(m)});items=[];meshes.clear();pipes=[];project.name='Umfazo Reference Gold Plant · Preloaded Site';project.tph=35;project.ore='Oxide';
- const layout=[['hopper',-27,-8],['crusher',-18,-8],['screen',-10,-8],['mill',0,-8],['cyclone',9,-8],['thickener',19,-8],['cilTank',29,-8],['cilTank',37,-8],['cilTank',45,-8],['cilTank',53,-8],['elution',63,-8],['carbon',55,1],['pump',19,4],['pump',31,4],['blower',43,4],['boiler',53,4],['tails',62,4],['tankwater',-2,9],['generator',-18,12],['mcc',-7,12],['platform',35,-1],['stairs',27,2],['structure',9,2],['conveyor',-19,-2],['conveyor',-5,-1],['conveyor',12,-2],['workshop',-28,15],['control',-14,17],['substation',1,16],['firewater',10,15]];
- const made=layout.map((a,i)=>{const it=add(a[0],a[1],a[2],false);it.tag=({hopper:'ROM-001',crusher:'CR-101',screen:'SC-101',mill:'BM-101',cyclone:'CY-101',thickener:'TH-101',cilTank:'TK-'+String(i).padStart(3,'0'),pump:'PU-'+String(i).padStart(3,'0'),boiler:'BL-101',generator:'GEN-001'}[a[0]]||a[0].toUpperCase()+'-'+String(i+1).padStart(3,'0'));return it});
- const chain=[0,1,2,3,4,5,6,7,8,9,10];for(let i=0;i<chain.length-1;i++)pipes.push({a:made[chain[i]].uid,b:made[chain[i+1]].uid});
- [[11,6],[12,5],[13,7],[14,8],[15,9],[16,10],[17,5],[18,2],[19,18],[20,6],[21,6],[22,3],[23,0],[24,2],[25,4],[26,0],[27,18],[28,19],[29,17]].forEach(([a,b])=>pipes.push({a:made[a].uid,b:made[b].uid}));
- redraw();selected=null;dirty();setTab('design');drawInspector();fit();toast('Preloaded reference-style gold plant loaded');
+ snap();
+ for(const m of meshes.values())scene.remove(m);
+ for(const m of pipeMeshes)scene.remove(m);
+ items=[];meshes.clear();pipes=[];pipeMeshes=[];
+ project.name='Umfazo Reference Gold Plant · Preloaded Site';
+ project.tph=35;project.ore='Oxide';project.grade=2.4;project.recovery=91;
+ // All IDs below are checked against the equipment library. Coordinates form a coherent process train.
+ const layout=[
+  ['hopper',-34,-9,'ROM-001'],['feeder',-28,-9,'VF-101'],['crusher',-22,-9,'CR-101'],
+  ['screen',-15,-9,'SC-101'],['bin',-8,-9,'FOB-101'],['conveyor',-21,-3,'CV-101'],
+  ['mill',0,-9,'BM-101'],['cyclone',9,-9,'CY-101'],['thickener',18,-9,'TH-101'],
+  ['cilTank',27,-10,'TK-101'],['cilTank',35,-10,'TK-102'],['cilTank',43,-10,'TK-103'],
+  ['cilTank',51,-10,'TK-104'],['cilTank',59,-10,'TK-105'],['carbon',48,-1,'CS-101'],
+  ['elution',62,-1,'EL-101'],['electrowinning',69,-1,'EW-101'],['goldroom',76,-1,'GR-101'],
+  ['detox',69,-11,'DT-101'],['filterpress',78,-11,'FP-101'],['tails',88,-11,'TP-101'],
+  ['pump',18,1,'PU-101'],['standby',21,5,'PU-102'],['pump',37,1,'PU-103'],
+  ['blower',49,4,'BLW-101'],['boiler',62,5,'BLR-101'],['cyanide',29,7,'RG-101'],
+  ['reagentplant',18,12,'RP-101'],['tankwater',-1,12,'WT-101'],['waterplant',9,18,'WTP-101'],
+  ['firewater',-12,17,'FWT-101'],['fuel',-23,17,'FUEL-101'],['generator',-34,17,'GEN-101'],
+  ['mcc',-1,22,'MCC-101'],['substation',-12,26,'SUB-101'],['control',11,25,'CTRL-101'],
+  ['workshop',-33,29,'WS-101'],['platform',37,-2,'PL-101'],['stairs',31,4,'ST-101'],
+  ['structure',17,-1,'PR-101'],['conveyor',-8,-1,'CV-102'],['conveyor',12,-1,'CV-103'],
+  ['conveyor',61,-5,'CV-104'],['assaylab',24,28,'LAB-101']
+ ];
+ const made=layout.map(([id,x,z,tag])=>{const it=add(id,x,z,false);if(!it)throw new Error('Missing equipment library item: '+id);it.tag=tag;return it});
+ const link=(a,b)=>pipes.push({a:made[a].uid,b:made[b].uid});
+ // Main ore-to-recovery train
+ [[0,1],[1,2],[2,3],[3,4],[4,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,13],[13,14],[14,15],[15,16],[16,17],[13,18],[18,19],[19,20],
+ // Process water, reagent, air, steam and tailings services
+ [21,8],[22,8],[23,10],[24,9],[25,15],[26,9],[27,9],[28,8],[29,8],[30,18],[31,24],[32,31],[33,32],[34,33],[35,33],[36,0],[37,8],[38,9],[39,8],[40,4],[41,6],[42,15],[43,34]].forEach(([a,b])=>link(a,b));
+ selected=null;redraw();dirty();setTab('design');drawInspector();
+ // Fit to the whole installed site rather than retaining the previous scene's camera target.
+ const xs=made.map(i=>i.x),zs=made.map(i=>i.z),cx=(Math.min(...xs)+Math.max(...xs))/2,cz=(Math.min(...zs)+Math.max(...zs))/2;
+ controls.target.set(cx,2,cz);camera.position.set(cx+Math.max(65,(Math.max(...xs)-Math.min(...xs))*1.05),Math.max(48,(Math.max(...xs)-Math.min(...xs))*.72),cz+Math.max(68,(Math.max(...zs)-Math.min(...zs))*1.25));controls.update();
+ fit();drawInspector();toast('Umfazo reference gold plant loaded · '+made.length+' equipment items');
 };
+
 
 function init(){scene=new THREE.Scene();scene.background=new THREE.Color(0x9ab3c0);scene.fog=new THREE.Fog(0x9ab3c0,110,240);camera=new THREE.PerspectiveCamera(45,1,.1,600);camera.position.set(38,35,42);const lowPower=matchMedia('(max-width: 900px)').matches||navigator.hardwareConcurrency<=4;renderer=new THREE.WebGLRenderer({antialias:!lowPower,powerPreference:'high-performance',stencil:false});renderer.setPixelRatio(Math.min(devicePixelRatio,lowPower?1.25:1.6));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;$('canvas').appendChild(renderer.domElement);let fallback=$('canvasFallback');if(fallback)fallback.remove();controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.06;controls.maxPolarAngle=Math.PI*.48;controls.minDistance=8;controls.maxDistance=220;scene.add(new THREE.HemisphereLight(0xe2f2ff,0x46513c,2.1));let sun=new THREE.DirectionalLight(0xffe3bd,3.2);sun.position.set(-35,65,25);sun.castShadow=true;sun.shadow.mapSize.set(lowPower?512:1024,lowPower?512:1024);sun.shadow.camera.left=-90;sun.shadow.camera.right=90;sun.shadow.camera.top=90;sun.shadow.camera.bottom=-90;scene.add(sun);let fill=new THREE.DirectionalLight(0xa9c8d9,.7);fill.position.set(30,22,-40);scene.add(fill);makeTerrain();let grid=new THREE.GridHelper(120,120,0x66776c,0x879489);grid.position.y=.04;grid.material.transparent=true;grid.material.opacity=.16;scene.add(grid);plane=new THREE.Plane(new THREE.Vector3(0,1,0),0);ray=new THREE.Raycaster();renderer.domElement.addEventListener('pointerdown',down);renderer.domElement.addEventListener('pointermove',move);renderer.domElement.addEventListener('pointerup',up);window.addEventListener('resize',resize);let lastRender=0;function loop(now=0){requestAnimationFrame(loop);if(now-lastRender<(lowPower?33:22))return;let dt=Math.min(.05,Math.max(0,(now-lastFrame)/1000));lastFrame=now;lastRender=now;controls.update();animatePlant(dt);renderer.render(scene,camera)}resize();loop();try{let s=JSON.parse(localStorage.getItem('umfazo-plant-project'));if(s){project={...project,...(s.project||{})};project={oreTonnes:250000,solids:40,solidSG:2.7,residence:24,tankVolume:100,bwi:15,feedSize:10000,productSize:150,millEfficiency:90,...project};if(!ores[project.ore])project.ore='Oxide';visualStyle=s.visualStyle||'detailed';if(s.engineering)Object.assign(engineeringBasis,s.engineering);window.umfazoEngineeringResults=s.engineeringResults||{};$('visualStyle').textContent=visualStyle==='detailed'?'Detailed 3D':'Schematic';items=s.equipment||[];items.forEach(it=>{if(it.running===undefined)it.running=false});pipes=s.pipes||[];if(Array.isArray(s.surveyPoints)&&s.surveyPoints.length>=3){buildSurveyGrid(s.surveyPoints.map(p=>({x:p.x,z:p.z,y:p.y})));makeTerrain()}items.forEach(rebuild);redraw()}}catch(e){}drawInspector()}
 function resize(){if(!renderer)return;let r=$('canvas').getBoundingClientRect();if(!r.width||!r.height)return;camera.aspect=r.width/r.height;camera.updateProjectionMatrix();renderer.setSize(r.width,r.height,false)}
