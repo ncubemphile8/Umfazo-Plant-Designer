@@ -86,3 +86,11 @@ Use only to fit representative bottle-roll or pilot data. It is not a metallurgi
 
 ### Preliminary cost plan
 Steel mass, steel rate, concrete rate and installation allowance are user inputs. No live vendor prices, freight, tax, equipment purchase price, commissioning or contingency are included.
+
+### Pump curve intersection and parallel branches
+- A vendor pump curve is imported as CSV with flow in m³/h and head in metres.
+- The app linearly interpolates pump head and finds the crossing with the single-pipe system curve over the supplied flow range.
+- Three parallel branches are solved for equal common-header head loss; the branch flows are iterated until their sum matches the entered total flow.
+- Both calculations use the same water-property assumption and simplified friction model as the single-pipe duty.
+
+These calculations are preliminary operating-point screens, not a pump guarantee or a complete plant hydraulic network model. Verify vendor curve speed/impeller, efficiency and NPSHr at the actual duty, and model all fittings, elevation changes, control valves and slurry properties.
