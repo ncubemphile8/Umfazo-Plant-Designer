@@ -76,7 +76,33 @@ let rockMat=[mat(0x69735c,.05,.95),mat(0x817968,.05,.95),mat(0x596953,.05,.98)],
 for(let i=0;i<42;i++){let x=((i*37)%173)-86,z=((i*61)%173)-86;if(Math.abs(x)<28&&Math.abs(z)<24)continue;let y=terrainHeight(x,z);let r=.5+(i%5)*.16;let tree=new THREE.Group();cyl(tree,.13,.18,1.2,trunk,0,.6,0,7);let crown=new THREE.Mesh(new THREE.ConeGeometry(r,1.8,7),treeMat);crown.position.y=1.8;crown.castShadow=true;tree.add(crown);tree.position.set(x,y,z);terrainGroup.add(tree)}
 for(let i=0;i<28;i++){let x=((i*43)%165)-82,z=((i*29)%165)-82;if(Math.abs(x)<30&&Math.abs(z)<26)continue;let r=.4+(i%7)*.22,rock=new THREE.Mesh(new THREE.DodecahedronGeometry(r,0),rockMat[i%3]);rock.position.set(x,terrainHeight(x,z)+r*.25,z);rock.scale.y=.5;rock.castShadow=true;terrainGroup.add(rock)}
 scene.add(terrainGroup);terrainGroup.visible=terrainOn}
-function redraw(){pipeMeshes.forEach(o=>scene.remove(o));pipeMeshes=[];pipes.forEach((p,idx)=>{let a=items.find(i=>i.uid===p.a),b=items.find(i=>i.uid===p.b);if(!a||!b)return;let A=new THREE.Vector3(a.x,a.y+a.h*.55,a.z),B=new THREE.Vector3(b.x,b.y+b.h*.55,b.z),C=new THREE.Vector3(B.x,A.y,B.z),D=new THREE.Vector3(A.x,A.y,B.z);let curve=new THREE.CatmullRomCurve3([A,D,C,B]);let mesh=new THREE.Mesh(new THREE.TubeGeometry(curve,28,.055,8,false),cyan);mesh.castShadow=true;scene.add(mesh);pipeMeshes.push(mesh)})}
+function redraw(){
+ pipeMeshes.forEach(o=>scene.remove(o));pipeMeshes=[];
+ pipes.forEach((p,idx)=>{
+  let a=items.find(i=>i.uid===p.a),b=items.find(i=>i.uid===p.b);if(!a||!b)return;
+  const process=idx<20,rad=process?.105:.075,material=process?cyan:steel;
+  const startY=Math.max(a.h*.48,.65),endY=Math.max(b.h*.48,.65);
+  const A=new THREE.Vector3(a.x,a.y+startY,a.z),B=new THREE.Vector3(b.x,b.y+endY,b.z);
+  const midY=Math.max(A.y,B.y)+Math.min(2.2,Math.max(.7,Math.abs(A.x-B.x)*.025));
+  const p1=new THREE.Vector3(A.x,midY,A.z),p2=new THREE.Vector3(B.x,midY,B.z);
+  const curve=new THREE.CatmullRomCurve3([A,p1,new THREE.Vector3((A.x+B.x)/2,midY,(A.z+B.z)/2),p2,B]);
+  const mesh=new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(24,Math.ceil(A.distanceTo(B)*2)),rad,10,false),material);
+  mesh.castShadow=true;mesh.receiveShadow=true;scene.add(mesh);pipeMeshes.push(mesh);
+  // Short vertical drops and visible pipe shoes/supports along longer runs.
+  for(const v of [A,B]){
+   const drop=new THREE.Mesh(new THREE.CylinderGeometry(rad*.72,rad*.72,Math.max(.12,midY-v.y),10),material);
+   drop.position.set(v.x,(midY+v.y)/2,v.z);scene.add(drop);pipeMeshes.push(drop);
+  }
+  const length=Math.hypot(B.x-A.x,B.z-A.z),count=Math.floor(length/9);
+  for(let n=1;n<=count;n++){
+   const t=n/(count+1),x=A.x+(B.x-A.x)*t,z=A.z+(B.z-A.z)*t;
+   const foot=new THREE.Mesh(new THREE.BoxGeometry(.85,.14,.85),darkSteel);foot.position.set(x,terrainHeight(x,z)+.07,z);scene.add(foot);pipeMeshes.push(foot);
+   const post=new THREE.Mesh(new THREE.BoxGeometry(.12,Math.max(.2,midY-terrainHeight(x,z)-.2),.12),steel);
+   post.position.set(x,(midY+terrainHeight(x,z))*.5,z);scene.add(post);pipeMeshes.push(post);
+   const shoe=new THREE.Mesh(new THREE.BoxGeometry(.62,.12,.62),steel);shoe.position.set(x,midY-.16,z);scene.add(shoe);pipeMeshes.push(shoe);
+  }
+ });
+}
 function setTab(t){activeTab=t;document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));drawInspector()}
 function drawInspector(){let it=items.find(i=>i.uid===selected);if(activeTab==='simulate'){drawSimulation();return}if(activeTab==='site'){drawSitePanel();return}if(activeTab==='engineering'){drawEngineeringPanel();return}
 if(!it){$('title').textContent='Project overview';$('subtitle').textContent=project.name;$('inspector').innerHTML='<section class="prop"><h4>LAYOUT SUMMARY</h4><div class="stats"><div class="stat"><b>'+items.length+'</b><small>Equipment items</small></div><div class="stat"><b>'+pipes.length+'</b><small>Pipe connections</small></div><div class="stat"><b>'+project.tph+'</b><small>Feed t/h design basis</small></div><div class="stat"><b>'+items.filter(i=>['tank','cilTank','leachTank','cipTank'].includes(i.id)).length+'</b><small>CIL / CIP tanks</small></div></div></section><section class="prop"><h4>PROJECT DETAILS</h4><div class="field"><label>Project name</label><input id="pname" value="'+esc(project.name)+'"></div><div class="field"><label>Ore type</label><select id="ore"><option>Oxide</option><option>Transitional</option><option>Sulphide</option></select></div><div class="field"><label>Design feed rate (t/h)</label><input id="tph" type="number" min="0" step=".5" value="'+project.tph+'"></div><button class="btn primary" id="applyProject">Apply project basis</button></section><section class="prop"><h4>STARTER FLOWSHEETS</h4><div class="field"><select id="template"><option value="cil">CIL — crushing, milling, leach & adsorption</option><option value="cip">CIP — leach & carbon adsorption</option><option value="full">Full gold plant with services</option><option value="reference">Umfazo reference-style site · preloaded</option><option value="mine">Mine shaft & surface infrastructure</option></select></div><button class="btn" id="load">Load example layout</button><div class="note">Examples are conceptual arrangement studies. Equipment dimensions, process sizing and design criteria must be confirmed for each project.</div></section><section class="prop"><h4>PROCESS ROUTE GUIDE</h4><p class="muted">'+ores[project.ore].route+'</p><p class="muted">'+ores[project.ore].comment+'</p></section>';$('ore').value=project.ore;$('applyProject').onclick=()=>{snap();project.name=$('pname').value;project.ore=$('ore').value;project.tph=Math.max(0,+$('tph').value||0);dirty();drawInspector();toast('Project basis updated')};$('load').onclick=()=>template($('template').value);return}
@@ -245,25 +271,25 @@ function umEmergencyStop(){
 const umModelBeforeReference=model;
 model=function(it){
  const g=umModelBeforeReference(it),w=it.w,h=it.h,d=it.d;
- const steelRef=mat(0x46545a,.78,.3),darkRef=mat(0x20292d,.25,.72),goldRef=mat(0xd49b32,.65,.3),redRef=mat(0x8f302b,.55,.42);
- const addGear=(x,r,depth,teeth=40)=>{const ring=cyl(g,r,r,depth,goldRef,x,h*.5,0,48);ring.rotation.z=Math.PI/2;for(let n=0;n<teeth;n++){const a=n*Math.PI*2/teeth;const tooth=box(g,depth*1.12,.12,.19,steelRef,x,h*.5+Math.cos(a)*(r+.045),Math.sin(a)*(r+.045));tooth.rotation.x=a;}};
+ const steel=mat(0x46545a,.78,.3),darkRef=mat(0x20292d,.25,.72),goldRef=mat(0xd49b32,.65,.3),redRef=mat(0x8f302b,.55,.42);
+ const addGear=(x,r,depth,teeth=40)=>{const ring=cyl(g,r,r,depth,goldRef,x,h*.5,0,48);ring.rotation.z=Math.PI/2;for(let n=0;n<teeth;n++){const a=n*Math.PI*2/teeth;const tooth=box(g,depth*1.12,.12,.19,steel,x,h*.5+Math.cos(a)*(r+.045),Math.sin(a)*(r+.045));tooth.rotation.x=a;}};
  if(it.id==='mill'){
-  for(const x of [-w*.34,w*.34]){box(g,.42,.5,d*.92,steelRef,x,.28,0);for(const z of [-d*.34,d*.34])beam(g,[x,.08,z],[x,.82,z],.11,steelRef);const tr=cyl(g,d*.19,d*.19,.55,darkRef,x,h*.5,0,32);tr.rotation.z=Math.PI/2;const flange=cyl(g,d*.31,d*.31,.18,goldRef,x,h*.5,0,40);flange.rotation.z=Math.PI/2;}
-  addGear(-w*.23,d*.49,.22,40);const pinion=cyl(g,d*.16,d*.16,.34,goldRef,-w*.23,.35,d*.58,28);pinion.rotation.z=Math.PI/2;pinion.userData.spinSpeed=2.2;g.userData.moving=(g.userData.moving||[]).concat([pinion]);box(g,w*.22,.48,d*.38,steelRef,-w*.2,.3,d*.82);box(g,w*.25,.75,d*.35,darkRef,-w*.42,.42,d*.7);const feed=cyl(g,.22,.22,d*.32,steelRef,-w*.52,h*.64,0,20);feed.rotation.z=Math.PI/2;const discharge=cyl(g,.24,.24,d*.35,steelRef,w*.52,h*.38,0,20);discharge.rotation.z=Math.PI/2;for(const x of [-w*.44,w*.44])for(const z of [-d*.34,d*.34])box(g,.16,.12,.16,goldRef,x,.08,z);
+  for(const x of [-w*.34,w*.34]){box(g,.42,.5,d*.92,steel,x,.28,0);for(const z of [-d*.34,d*.34])beam(g,[x,.08,z],[x,.82,z],.11,steel);const tr=cyl(g,d*.19,d*.19,.55,darkRef,x,h*.5,0,32);tr.rotation.z=Math.PI/2;const flange=cyl(g,d*.31,d*.31,.18,goldRef,x,h*.5,0,40);flange.rotation.z=Math.PI/2;}
+  addGear(-w*.23,d*.49,.22,40);const pinion=cyl(g,d*.16,d*.16,.34,goldRef,-w*.23,.35,d*.58,28);pinion.rotation.z=Math.PI/2;pinion.userData.spinSpeed=2.2;g.userData.moving=(g.userData.moving||[]).concat([pinion]);box(g,w*.22,.48,d*.38,steel,-w*.2,.3,d*.82);box(g,w*.25,.75,d*.35,darkRef,-w*.42,.42,d*.7);const feed=cyl(g,.22,.22,d*.32,steel,-w*.52,h*.64,0,20);feed.rotation.z=Math.PI/2;const discharge=cyl(g,.24,.24,d*.35,steel,w*.52,h*.38,0,20);discharge.rotation.z=Math.PI/2;for(const x of [-w*.44,w*.44])for(const z of [-d*.34,d*.34])box(g,.16,.12,.16,goldRef,x,.08,z);
  }
  if(it.id==='crusher'){
-  box(g,w*.72,h*.56,d*.72,redRef,0,h*.53,0);box(g,w*.56,h*.43,d*.58,darkRef,0,h*.54,d*.02);for(let n=0;n<9;n++)beam(g,[-w*.24+n*w*.06,h*.34,-d*.29],[-w*.24+n*w*.06,h*.72,d*.29],.035,steelRef);
-  for(const x of [-w*.4,w*.4]){const fw=cyl(g,d*.43,d*.43,.17,goldRef,x,h*.5,d*.42,36);fw.rotation.x=Math.PI/2;fw.userData.spinSpeed=4;g.userData.moving=(g.userData.moving||[]).concat([fw]);for(let n=0;n<8;n++){const a=n*Math.PI/4;beam(g,[x,h*.5+Math.cos(a)*d*.35,d*.42+Math.sin(a)*.35],[x,h*.5+Math.cos(a)*d*.43,d*.42+Math.sin(a)*.43],.045,steelRef)}}
-  beam(g,[-w*.25,h*.22,-d*.38],[w*.25,h*.65,-d*.38],.1,goldRef);box(g,w*.8,.25,d*.7,steelRef,0,h*.9,0);for(const x of [-w*.35,w*.35])beam(g,[x,.08,-d*.38],[x,h*.94,-d*.38],.12,steelRef);
+  box(g,w*.72,h*.56,d*.72,redRef,0,h*.53,0);box(g,w*.56,h*.43,d*.58,darkRef,0,h*.54,d*.02);for(let n=0;n<9;n++)beam(g,[-w*.24+n*w*.06,h*.34,-d*.29],[-w*.24+n*w*.06,h*.72,d*.29],.035,steel);
+  for(const x of [-w*.4,w*.4]){const fw=cyl(g,d*.43,d*.43,.17,goldRef,x,h*.5,d*.42,36);fw.rotation.x=Math.PI/2;fw.userData.spinSpeed=4;g.userData.moving=(g.userData.moving||[]).concat([fw]);for(let n=0;n<8;n++){const a=n*Math.PI/4;beam(g,[x,h*.5+Math.cos(a)*d*.35,d*.42+Math.sin(a)*.35],[x,h*.5+Math.cos(a)*d*.43,d*.42+Math.sin(a)*.43],.045,steel)}}
+  beam(g,[-w*.25,h*.22,-d*.38],[w*.25,h*.65,-d*.38],.1,goldRef);box(g,w*.8,.25,d*.7,steel,0,h*.9,0);for(const x of [-w*.35,w*.35])beam(g,[x,.08,-d*.38],[x,h*.94,-d*.38],.12,steel);
  }
- if(it.id==='screen'){box(g,w*.88,.16,d*.72,darkRef,0,h*.42,0);for(let n=0;n<9;n++)beam(g,[-w*.4+n*w*.1,h*.52,-d*.32],[-w*.4+n*w*.1,h*.52,d*.32],.035,goldRef);for(const x of [-w*.36,w*.36]){const vib=cyl(g,.13,.13,d*.68,goldRef,x,h*.28,0,20);vib.rotation.x=Math.PI/2;vib.userData.spinSpeed=16;g.userData.moving=(g.userData.moving||[]).concat([vib]);beam(g,[x,.15,-d*.3],[x,h*.45,d*.3],.08,steelRef)}}
- if(it.id==='cyclone'){for(let n=0;n<3;n++){const x=(n-1)*w*.25;cyl(g,w*.12,w*.2,h*.48,redRef,x,h*.63,0,24);const cone=new THREE.Mesh(new THREE.ConeGeometry(w*.2,h*.48,24),redRef);cone.position.set(x,h*.15,0);cone.rotation.x=Math.PI;g.add(cone);cyl(g,.08,.08,h*.3,steelRef,x,h*.93,0,16)}box(g,w,.14,d*.72,steelRef,0,h*.4,0)}
- if(it.id==='hopper'||it.id==='bin'){for(let n=0;n<8;n++){const a=n*Math.PI/4;beam(g,[Math.cos(a)*w*.42,h*.25,Math.sin(a)*d*.42],[Math.cos(a)*w*.12,.18,Math.sin(a)*d*.12],.11,steelRef)}box(g,w*.24,.24,d*.24,darkRef,0,.12,0)}
- if(it.id==='thickener'){box(g,w*.9,.16,.22,steelRef,0,h*.88,0);for(const x of [-w*.42,w*.42])beam(g,[x,h*.78,0],[x,h*.98,0],.1,steelRef);for(let n=0;n<4;n++){const a=n*Math.PI/2;beam(g,[0,h*.43,0],[Math.cos(a)*w*.42,h*.22,Math.sin(a)*d*.42],.07,goldRef)}const rake=cyl(g,.12,.12,.3,goldRef,0,h*.98,0,20);rake.userData.spinSpeed=.7;g.userData.moving=(g.userData.moving||[]).concat([rake])}
- if(['cilTank','cipTank','leachTank','tank','detox','tankwater','firewater'].includes(it.id)){for(const y of [.18,.42,.66])cyl(g,Math.min(w,d)*.505,Math.min(w,d)*.505,.07,steelRef,0,h*y,0,48);for(let n=0;n<8;n++){const a=n*Math.PI/4;beam(g,[Math.cos(a)*w*.48,h*.08,Math.sin(a)*d*.48],[Math.cos(a)*w*.48,h*.78,Math.sin(a)*d*.48],.045,steelRef)}}
- if(it.id==='conveyor'||it.id==='stacker'){for(let x=-w*.42;x<=w*.42;x+=w*.12){const roller=cyl(g,.075,.075,d*.62,steelRef,x,h*.49,0,16);roller.rotation.x=Math.PI/2;roller.userData.spinSpeed=5;g.userData.moving=(g.userData.moving||[]).concat([roller])}for(const x of [-w*.45,w*.45]){beam(g,[x,.05,-d*.34],[x,h*.5,-d*.34],.1,steelRef);beam(g,[x,.05,d*.34],[x,h*.5,d*.34],.1,steelRef)}box(g,w*.94,.09,d*.52,darkRef,0,h*.58,0)}
- if(it.id==='platform'||it.id==='structure'){for(let x=-w*.45;x<=w*.46;x+=w*.3){beam(g,[x,.05,-d*.42],[x,h,-d*.42],.1,steelRef);beam(g,[x,.05,d*.42],[x,h,d*.42],.1,steelRef)}for(let y=.4;y<h;y+=.55){beam(g,[-w*.48,y,-d*.42],[w*.48,y,-d*.42],.055,goldRef);beam(g,[-w*.48,y,d*.42],[w*.48,y,d*.42],.055,goldRef)}box(g,w,.12,d,steelRef,0,h*.55,0)}
- if(it.id==='stairs'){for(let n=0;n<12;n++){const t=n/11;box(g,w*.7,.08,d*.28,steelRef,0,.15+t*h*.72,-d*.3+t*d*.6)}}
+ if(it.id==='screen'){box(g,w*.88,.16,d*.72,darkRef,0,h*.42,0);for(let n=0;n<9;n++)beam(g,[-w*.4+n*w*.1,h*.52,-d*.32],[-w*.4+n*w*.1,h*.52,d*.32],.035,goldRef);for(const x of [-w*.36,w*.36]){const vib=cyl(g,.13,.13,d*.68,goldRef,x,h*.28,0,20);vib.rotation.x=Math.PI/2;vib.userData.spinSpeed=16;g.userData.moving=(g.userData.moving||[]).concat([vib]);beam(g,[x,.15,-d*.3],[x,h*.45,d*.3],.08,steel)}}
+ if(it.id==='cyclone'){for(let n=0;n<3;n++){const x=(n-1)*w*.25;cyl(g,w*.12,w*.2,h*.48,redRef,x,h*.63,0,24);const cone=new THREE.Mesh(new THREE.ConeGeometry(w*.2,h*.48,24),redRef);cone.position.set(x,h*.15,0);cone.rotation.x=Math.PI;g.add(cone);cyl(g,.08,.08,h*.3,steel,x,h*.93,0,16)}box(g,w,.14,d*.72,steel,0,h*.4,0)}
+ if(it.id==='hopper'||it.id==='bin'){for(let n=0;n<8;n++){const a=n*Math.PI/4;beam(g,[Math.cos(a)*w*.42,h*.25,Math.sin(a)*d*.42],[Math.cos(a)*w*.12,.18,Math.sin(a)*d*.12],.11,steel)}box(g,w*.24,.24,d*.24,darkRef,0,.12,0)}
+ if(it.id==='thickener'){box(g,w*.9,.16,.22,steel,0,h*.88,0);for(const x of [-w*.42,w*.42])beam(g,[x,h*.78,0],[x,h*.98,0],.1,steel);for(let n=0;n<4;n++){const a=n*Math.PI/2;beam(g,[0,h*.43,0],[Math.cos(a)*w*.42,h*.22,Math.sin(a)*d*.42],.07,goldRef)}const rake=cyl(g,.12,.12,.3,goldRef,0,h*.98,0,20);rake.userData.spinSpeed=.7;g.userData.moving=(g.userData.moving||[]).concat([rake])}
+ if(['cilTank','cipTank','leachTank','tank','detox','tankwater','firewater'].includes(it.id)){for(const y of [.18,.42,.66])cyl(g,Math.min(w,d)*.505,Math.min(w,d)*.505,.07,steel,0,h*y,0,48);for(let n=0;n<8;n++){const a=n*Math.PI/4;beam(g,[Math.cos(a)*w*.48,h*.08,Math.sin(a)*d*.48],[Math.cos(a)*w*.48,h*.78,Math.sin(a)*d*.48],.045,steel)}}
+ if(it.id==='conveyor'||it.id==='stacker'){for(let x=-w*.42;x<=w*.42;x+=w*.12){const roller=cyl(g,.075,.075,d*.62,steel,x,h*.49,0,16);roller.rotation.x=Math.PI/2;roller.userData.spinSpeed=5;g.userData.moving=(g.userData.moving||[]).concat([roller])}for(const x of [-w*.45,w*.45]){beam(g,[x,.05,-d*.34],[x,h*.5,-d*.34],.1,steel);beam(g,[x,.05,d*.34],[x,h*.5,d*.34],.1,steel)}box(g,w*.94,.09,d*.52,darkRef,0,h*.58,0)}
+ if(it.id==='platform'||it.id==='structure'){for(let x=-w*.45;x<=w*.46;x+=w*.3){beam(g,[x,.05,-d*.42],[x,h,-d*.42],.1,steel);beam(g,[x,.05,d*.42],[x,h,d*.42],.1,steel)}for(let y=.4;y<h;y+=.55){beam(g,[-w*.48,y,-d*.42],[w*.48,y,-d*.42],.055,goldRef);beam(g,[-w*.48,y,d*.42],[w*.48,y,d*.42],.055,goldRef)}box(g,w,.12,d,steel,0,h*.55,0)}
+ if(it.id==='stairs'){for(let n=0;n<12;n++){const t=n/11;box(g,w*.7,.08,d*.28,steel,0,.15+t*h*.72,-d*.3+t*d*.6)}}
  return g;
 };
 
@@ -278,7 +304,7 @@ model=function(it){
  for(let n=0;n<deckN;n++){
   const a=(n+.5)*Math.PI*2/deckN,seg=(Math.PI*2*deckR/deckN)*.96;
   const p=box(g,seg,.12,deckW,deckMat,Math.cos(a)*deckR,deckY,Math.sin(a)*deckR);p.rotation.y=-a;
-  beam(g,[Math.cos(a)*(r+.12),deckY-.12,Math.sin(a)*(r+.12)],[Math.cos(a)*(deckR+deckW*.48),deckY-.12,Math.sin(a)*(deckR+deckW*.48)],.035,steelRef);
+  beam(g,[Math.cos(a)*(r+.12),deckY-.12,Math.sin(a)*(r+.12)],[Math.cos(a)*(deckR+deckW*.48),deckY-.12,Math.sin(a)*(deckR+deckW*.48)],.035,steel);
  }
  for(let n=0;n<deckN;n++){
   const a=n*Math.PI*2/deckN,x=Math.cos(a)*(deckR+deckW*.48),z=Math.sin(a)*(deckR+deckW*.48);
@@ -291,14 +317,14 @@ model=function(it){
  }
  for(let n=0;n<4;n++){
   const a=n*Math.PI/2,x=Math.cos(a)*(r+.42),z=Math.sin(a)*(r+.42);
-  beam(g,[x,.12,z],[x,deckY-.08,z],.075,steelRef);
-  beam(g,[Math.cos(a)*r,deckY-.1,Math.sin(a)*r],[x,deckY-.1,z],.055,steelRef);
+  beam(g,[x,.12,z],[x,deckY-.08,z],.075,steel);
+  beam(g,[Math.cos(a)*r,deckY-.1,Math.sin(a)*r],[x,deckY-.1,z],.055,steel);
  }
  const side=(Math.round(Math.abs(it.x||0)/7)%2)*Math.PI/2,ux=Math.cos(side),uz=Math.sin(side),tx=-uz,tz=ux;
  const outer=deckR+2.7,inner=deckR+.18,steps=11,stairW=1.05;
  const p0=[ux*outer,.18,uz*outer],p1=[ux*inner,deckY-.08,uz*inner];
- beam(g,[p0[0]-tx*stairW*.55,p0[1],p0[2]-tz*stairW*.55],[p1[0]-tx*stairW*.55,p1[1],p1[2]-tz*stairW*.55],.075,steelRef);
- beam(g,[p0[0]+tx*stairW*.55,p0[1],p0[2]+tz*stairW*.55],[p1[0]+tx*stairW*.55,p1[1],p1[2]+tz*stairW*.55],.075,steelRef);
+ beam(g,[p0[0]-tx*stairW*.55,p0[1],p0[2]-tz*stairW*.55],[p1[0]-tx*stairW*.55,p1[1],p1[2]-tz*stairW*.55],.075,steel);
+ beam(g,[p0[0]+tx*stairW*.55,p0[1],p0[2]+tz*stairW*.55],[p1[0]+tx*stairW*.55,p1[1],p1[2]+tz*stairW*.55],.075,steel);
  for(let n=0;n<steps;n++){
   const t=(n+.5)/steps,x=ux*(outer+(inner-outer)*t),z=uz*(outer+(inner-outer)*t),y=.18+(deckY-.26)*t;
   const tread=box(g,stairW,.085,.34,grateMat,x,y,z);tread.rotation.y=-side;
@@ -314,7 +340,7 @@ model=function(it){
  }
  const landing=box(g,1.35,.12,1.15,deckMat,ux*(deckR+.12),deckY,uz*(deckR+.12));landing.rotation.y=-side;
  cyl(g,.22,.22,.09,yellowMat,0,h*.785,0,24);
- for(let n=0;n<8;n++){const a=n*Math.PI/4;cyl(g,.055,.055,.22,steelRef,Math.cos(a)*r*.72,h*.81,Math.sin(a)*r*.72,12)}
+ for(let n=0;n<8;n++){const a=n*Math.PI/4;cyl(g,.055,.055,.22,steel,Math.cos(a)*r*.72,h*.81,Math.sin(a)*r*.72,12)}
  return g;
 };
 
