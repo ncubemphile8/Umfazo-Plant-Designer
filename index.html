@@ -356,21 +356,21 @@ template=function(kind){
  project.tph=35;project.ore='Oxide';project.grade=2.4;project.recovery=91;
  // All IDs below are checked against the equipment library. Coordinates form a coherent process train.
  const layout=[
-  ['hopper',-34,-9,'ROM-001'],['feeder',-28,-9,'VF-101'],['crusher',-22,-9,'CR-101'],
-  ['screen',-15,-9,'SC-101'],['bin',-8,-9,'FOB-101'],['conveyor',-21,-3,'CV-101'],
-  ['mill',0,-9,'BM-101'],['cyclone',9,-9,'CY-101'],['thickener',18,-9,'TH-101'],
-  ['cilTank',27,-10,'TK-101'],['cilTank',35,-10,'TK-102'],['cilTank',43,-10,'TK-103'],
-  ['cilTank',51,-10,'TK-104'],['cilTank',59,-10,'TK-105'],['carbon',48,-1,'CS-101'],
-  ['elution',62,-1,'EL-101'],['electrowinning',69,-1,'EW-101'],['goldroom',76,-1,'GR-101'],
-  ['detox',69,-11,'DT-101'],['filterpress',78,-11,'FP-101'],['tails',88,-11,'TP-101'],
-  ['pump',18,1,'PU-101'],['standby',21,5,'PU-102'],['pump',37,1,'PU-103'],
-  ['blower',49,4,'BLW-101'],['boiler',62,5,'BLR-101'],['cyanide',29,7,'RG-101'],
-  ['reagentplant',18,12,'RP-101'],['tankwater',-1,12,'WT-101'],['waterplant',9,18,'WTP-101'],
-  ['firewater',-12,17,'FWT-101'],['fuel',-23,17,'FUEL-101'],['generator',-34,17,'GEN-101'],
-  ['mcc',-1,22,'MCC-101'],['substation',-12,26,'SUB-101'],['control',11,25,'CTRL-101'],
-  ['workshop',-33,29,'WS-101'],['platform',37,-2,'PL-101'],['stairs',31,4,'ST-101'],
-  ['structure',17,-1,'PR-101'],['conveyor',-8,-1,'CV-102'],['conveyor',12,-1,'CV-103'],
-  ['conveyor',61,-5,'CV-104'],['assaylab',24,28,'LAB-101']
+  ['hopper',-58,-16,'ROM-001'],['feeder',-45,-16,'VF-101'],['crusher',-33,-16,'CR-101'],
+  ['screen',-21,-16,'SC-101'],['bin',-9,-16,'FOB-101'],['conveyor',-28,-7,'CV-101'],
+  ['mill',5,-16,'BM-101'],['cyclone',19,-16,'CY-101'],['thickener',34,-16,'TH-101'],
+  ['cilTank',51,-18,'TK-101'],['cilTank',65,-18,'TK-102'],['cilTank',79,-18,'TK-103'],
+  ['cilTank',93,-18,'TK-104'],['cilTank',107,-18,'TK-105'],['carbon',81,-2,'CS-101'],
+  ['elution',97,-2,'EL-101'],['electrowinning',111,-2,'EW-101'],['goldroom',125,-2,'GR-101'],
+  ['detox',94,-34,'DT-101'],['filterpress',109,-34,'FP-101'],['tails',124,-34,'TP-101'],
+  ['pump',36,-2,'PU-101'],['standby',43,5,'PU-102'],['pump',65,-2,'PU-103'],
+  ['blower',78,7,'BLW-101'],['boiler',96,8,'BLR-101'],['cyanide',49,10,'RG-101'],
+  ['reagentplant',32,15,'RP-101'],['tankwater',5,13,'WT-101'],['waterplant',19,24,'WTP-101'],
+  ['firewater',-2,24,'FWT-101'],['fuel',-20,24,'FUEL-101'],['generator',-38,24,'GEN-101'],
+  ['mcc',-2,38,'MCC-101'],['substation',-19,39,'SUB-101'],['control',17,42,'CTRL-101'],
+  ['workshop',-48,43,'WS-101'],['platform',63,-5,'PL-101'],['stairs',55,0,'ST-101'],
+  ['structure',34,-2,'PR-101'],['conveyor',-4,-5,'CV-102'],['conveyor',22,-5,'CV-103'],
+  ['conveyor',105,-9,'CV-104'],['assaylab',42,38,'LAB-101']
  ];
  const made=layout.map(([id,x,z,tag])=>{
   const it=add(id,x,z,false);if(!it)throw new Error('Missing equipment library item: '+id);
