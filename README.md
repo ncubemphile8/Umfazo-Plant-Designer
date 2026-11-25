@@ -10,7 +10,7 @@ https://umfazo-plant-designer-studio.vercel.app
 
 ## Current capabilities
 
-- Three.js 3D workspace with orbit, pan, zoom, top view, fit-to-layout and shadowed rendering
+- Three.js 3D workspace with orbit, pan, zoom, top view, fit-to-layout, shadowed rendering and a toggle between detailed 3D equipment and schematic wireframe appearance
 - Plant equipment library for crushing, milling, screening, classification, distinct CIL leach/adsorption tanks, CIP leach tanks and CIP adsorption tanks, thickeners, carbon screens, elution, pumps, blowers, boilers, conveyors, headgear, shafts, hoists, steelwork, buildings, utilities and mine services
 - Place, move, rotate, resize and edit equipment; edit tags, dimensions, elevations, motor nameplate kW, duties and notes
 - Conceptual process connections between equipment
