@@ -78,13 +78,16 @@ function loadSurveyCSV(file){let reader=new FileReader();reader.onload=()=>{try{
 function makeTerrain(){
  if(terrainGroup)scene.remove(terrainGroup);
  terrainGroup=new THREE.Group();
- const N=surveyGrid?80:112;
- const SX=surveyGrid?Math.max(260,(surveyGrid.maxX-surveyGrid.minX)+150):420;
- const SZ=surveyGrid?Math.max(240,(surveyGrid.maxZ-surveyGrid.minZ)+150):340;
+ const N=surveyGrid?96:144;
+ // Keep the visible ground larger than the plant footprint so wide layouts and oblique camera views
+ // never expose the blue scene background at the edge of the site.
+ const SX=surveyGrid?Math.max(520,(surveyGrid.maxX-surveyGrid.minX)+300):760;
+ const SZ=surveyGrid?Math.max(460,(surveyGrid.maxZ-surveyGrid.minZ)+280):640;
  const geo=new THREE.PlaneGeometry(SX,SZ,N,N),p=geo.attributes.position;
  for(let i=0;i<p.count;i++){const x=p.getX(i),z=-p.getY(i);p.setZ(i,terrainHeight(x,z))}
  geo.computeVertexNormals();
- const terrain=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:0x9b8b69,roughness:1,metalness:0}));
+ // Double-sided rendering prevents terrain disappearing if steep survey interpolation flips local face normals.
+ const terrain=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:0x9b8b69,roughness:1,metalness:0,side:THREE.DoubleSide}));
  terrain.rotation.x=-Math.PI/2;terrain.receiveShadow=true;terrainGroup.add(terrain);
  const roadMat=mat(0x78664f,.01,.99),padMat=mat(0x9a8b73,.02,.98);
  function road(points,width,material=roadMat){
