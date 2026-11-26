@@ -452,6 +452,144 @@ template=function(kind){
 };
 
 
+
+/* UMFAZO ENGINEERING UPGRADE — site infrastructure, equipment detailing, piping and project outputs */
+const umSiteGroup=new THREE.Group();scene.add(umSiteGroup);
+function umClearGroup(g){while(g.children.length){const o=g.children.pop();if(o.geometry)o.geometry.dispose();}}
+function umRebuildSite(){
+ umClearGroup(umSiteGroup);
+ const concrete=mat(0x858783,.08,.92),concreteEdge=mat(0x626a68,.08,.9),roadMat=mat(0x8a765b,.02,.98),steelSite=mat(0x39494d,.72,.4),railSite=mat(0xc1c9c5,.72,.32),lampMat=mat(0x29363a,.65,.4);
+ // Individual equipment plinths and perimeter housekeeping pads.
+ for(const it of items){
+  const gy=terrainOn?terrainHeight(it.x,it.z):0;
+  const pw=Math.max(2,it.w+1.15),pd=Math.max(2,it.d+1.15);
+  const pl=new THREE.Mesh(new THREE.BoxGeometry(pw,.22,pd),concrete);
+  pl.position.set(it.x,gy+.08,it.z);pl.receiveShadow=true;pl.castShadow=true;umSiteGroup.add(pl);
+  const lip=new THREE.Mesh(new THREE.BoxGeometry(pw+.12,.08,pd+.12),concreteEdge);
+  lip.position.set(it.x,gy-.035,it.z);umSiteGroup.add(lip);
+ }
+ // Curved compacted-earth access road network around the process train.
+ const makeRoad=coords=>{const pts=coords.map(p=>new THREE.Vector3(p[0],(terrainOn?terrainHeight(p[0],p[1]):0)+.035,p[1]));const curve=new THREE.CatmullRomCurve3(pts);const mesh=new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(40,coords.length*12),3.1,8,false),roadMat);mesh.scale.y=.035;mesh.receiveShadow=true;umSiteGroup.add(mesh)};
+ makeRoad([[-155,82],[-120,65],[-82,48],[-48,42],[0,45],[48,55],[96,72],[150,86]]);
+ makeRoad([[-135,-100],[-112,-70],[-92,-38],[-82,0],[-72,42]]);
+ makeRoad([[150,-105],[135,-72],[128,-38],[140,-8],[162,20]]);
+ // ROM stockpile and graded stockyard at the crushing end.
+ const stock=new THREE.Mesh(new THREE.ConeGeometry(10,4.6,9),mat(0x76634e,.02,.98));stock.position.set(-83,(terrainOn?terrainHeight(-83,-34):0)+2.3,-34);stock.scale.set(1.45,1,1);stock.rotation.z=.12;stock.castShadow=true;umSiteGroup.add(stock);
+ // Pipe rack corridor: elevated steel trestles and longitudinal headers beside the plant.
+ if(items.length>8){
+  const xs=items.map(i=>i.x),zs=items.map(i=>i.z),z=Math.max(...zs)+13,x0=Math.min(...xs)+8,x1=Math.max(...xs)-8;
+  for(let x=x0;x<=x1;x+=12){
+   const gy=terrainOn?terrainHeight(x,z):0;
+   for(const zz of [z-1.2,z+1.2]){const post=new THREE.Mesh(new THREE.BoxGeometry(.18,4.2,.18),steelSite);post.position.set(x,gy+2.1,zz);umSiteGroup.add(post)}
+   const cross=new THREE.Mesh(new THREE.BoxGeometry(.2,.2,2.7),steelSite);cross.position.set(x,gy+4.1,z);umSiteGroup.add(cross);
+   for(let n=0;n<4;n++){const pipe=new THREE.Mesh(new THREE.CylinderGeometry(.055,.055,12,10),n%2?railSite:cyan);pipe.rotation.z=Math.PI/2;pipe.position.set(x+6,gy+3.35+n*.22,z-0.9+n*.6);umSiteGroup.add(pipe)}
+  }
+ }
+ // Site lighting columns with twin LED heads.
+ for(const [x,z] of [[-105,10],[-35,58],[45,62],[125,30],[145,-50]]){
+  const gy=terrainOn?terrainHeight(x,z):0;
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(.09,.14,9,10),lampMat);pole.position.set(x,gy+4.5,z);umSiteGroup.add(pole);
+  const arm=new THREE.Mesh(new THREE.BoxGeometry(1.5,.12,.16),steelSite);arm.position.set(x,gy+8.9,z);umSiteGroup.add(arm);
+  for(const dx of [-.48,.48]){const light=new THREE.Mesh(new THREE.BoxGeometry(.48,.16,.32),mat(0xffe2a0,.2,.35,{emissive:0x6b4b18,emissiveIntensity:.3}));light.position.set(x+dx,gy+8.82,z);umSiteGroup.add(light)}
+ }
+ // Site perimeter fence segments with posts and top rail, leaving a clear access gate.
+ const fence=[[-150,-65],[160,-65],[170,55],[-150,70],[-150,-65]];
+ for(let k=0;k<fence.length-1;k++){
+  const a=fence[k],b=fence[k+1],len=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.ceil(len/8);
+  for(let j=0;j<=n;j++){
+   const t=j/n,x=a[0]+(b[0]-a[0])*t,z=a[1]+(b[1]-a[1])*t;
+   if(k===0&&x>-8&&x<15)continue;
+   const gy=terrainOn?terrainHeight(x,z):0,post=new THREE.Mesh(new THREE.BoxGeometry(.1,1.8,.1),steelSite);post.position.set(x,gy+.9,z);umSiteGroup.add(post);
+   for(const yy of [.55,1.45]){const rail=new THREE.Mesh(new THREE.BoxGeometry(len/n+.03,.055,.055),railSite);rail.position.set(x,gy+yy,z);rail.rotation.y=-Math.atan2(b[1]-a[1],b[0]-a[0]);umSiteGroup.add(rail)}
+  }
+ }
+}
+const umDetailedModelBase=model;
+model=function(it){
+ const g=umDetailedModelBase(it),w=it.w,h=it.h,d=it.d;
+ const shell=mat(0x8e332d,.55,.43),edge=mat(0x313b3e,.78,.32),silver=mat(0xb7c0bc,.72,.3),yellow=mat(0xe1ae39,.58,.34);
+ // More recognisable tank fabrication: roof plates, manways, shell stiffeners, nozzles and drain connections.
+ if(['cilTank','cipTank','leachTank','tank','detox','cyanide','tankwater','firewater','fuel'].includes(it.id)){
+  const r=Math.min(w,d)*.5;
+  for(const yy of [.12,.36,.62,.88]){const ring=cyl(g,r+.035,r+.035,.075,edge,0,h*yy,0,48);ring.userData.isTankStiffener=true}
+  const roof=cyl(g,r*.985,r*.985,.16,shell,0,h*.985,0,48);
+  const manway=cyl(g,.48,.48,.12,edge,r*.48,h*1.075,0,24);
+  const manlid=cyl(g,.4,.4,.055,silver,r*.48,h*1.12,0,24);
+  for(let n=0;n<8;n++){const a=n*Math.PI/4;const bolt=cyl(g,.035,.035,.07,yellow,r*.48+Math.cos(a)*.34,h*1.12,r*.0+Math.sin(a)*.34,10)}
+  // Inlet, outlet, overflow and drain nozzles with short flanged stubs.
+  for(const [a,yy,rad] of [[0,.72,.18],[Math.PI/2,.2,.2],[Math.PI,.9,.13],[-Math.PI/2,.12,.12]]){
+   const x=Math.cos(a)*(r+.22),z=Math.sin(a)*(r+.22),stub=cyl(g,rad,rad,.52,silver,x,h*yy,z,16);stub.rotation.z=Math.PI/2;stub.rotation.y=a;
+   const flange=cyl(g,rad*1.5,rad*1.5,.08,edge,x,h*yy,z,20);flange.rotation.z=Math.PI/2;flange.rotation.y=a;
+  }
+  // External ladder cage and safety hoops, opposite the access staircase.
+  const lx=-r*.78,lz=-r*.78;
+  for(let yy=.15;yy<h*.82;yy+=.42){beam(g,[lx-.32,yy,lz],[lx+.32,yy,lz],.035,silver)}
+  for(const xx of [lx-.32,lx+.32])beam(g,[xx,.12,lz],[xx,h*.83,lz],.04,silver);
+  for(let yy=h*.18;yy<h*.8;yy+=h*.13){const hoop=cyl(g,.46,.46,.035,yellow,lx,yy,lz,20);hoop.rotation.x=Math.PI/2}
+  // Bottom outlet sump and drain valve.
+  const outlet=cyl(g,.17,.17,.7,silver,0,.18,r*.88,16);outlet.rotation.x=Math.PI/2;
+  const valve=box(g,.48,.16,.16,yellow,0,.2,r*1.02);
+  const handwheel=cyl(g,.28,.28,.055,edge,.32,.38,r*1.02,20);
+  g.userData.umTankDetails=true;
+ }
+ // Ball mill shell bands, shell access hatch, feed/discharge launders and drive assembly.
+ if(it.id==='mill'){
+  const barrel=cyl(g,d*.49,d*.49,w*.72,shell,0,h*.54,0,48);barrel.rotation.z=Math.PI/2;
+  for(const x of [-w*.34,w*.34]){const band=cyl(g,d*.515,d*.515,.18,edge,x,h*.54,0,48);band.rotation.z=Math.PI/2}
+  const hatch=box(g,.12,.85,.9,yellow,0,h*.54,d*.505);hatch.rotation.x=.12;
+  const motor=box(g,w*.28,.72,d*.42,edge,-w*.2,.42,d*.82);
+  for(let n=0;n<12;n++){const fin=box(g,.035,.48,.32,silver,-w*.2-w*.12+n*w*.022,.42,d*.82);fin.rotation.z=.08}
+  const gearbox=box(g,w*.2,.8,d*.48,shell,-w*.43,.48,d*.7);
+  const feedChute=box(g,.75,.65,d*.7,edge,-w*.54,h*.69,0);feedChute.rotation.z=-.18;
+  const dischargeChute=box(g,.72,.6,d*.68,edge,w*.54,h*.34,0);dischargeChute.rotation.z=.18;
+  for(const x of [-w*.38,w*.38])for(const z of [-d*.38,d*.38]){beam(g,[x,.12,z],[x,h*.36,z],.16,edge);box(g,.8,.16,.8,edge,x,.08,z)}
+  g.userData.umMillDrive={motor,gearbox};
+ }
+ // Crusher drive guard, access platform and chute lip.
+ if(it.id==='crusher'){
+  const guard=box(g,w*.36,h*.48,.12,edge,w*.28,h*.38,d*.45);
+  for(let n=0;n<7;n++)beam(g,[w*.12+n*w*.045,.2,d*.53],[w*.12+n*w*.045,h*.72,d*.53],.035,yellow);
+ }
+ return g;
+};
+const umRedrawBeforeEngineering=redraw;
+redraw=function(){
+ umRedrawBeforeEngineering();
+ // Add flanged joints and valve operators on process pipe endpoints without disturbing flow animation.
+ for(let idx=0;idx<pipes.length;idx++){
+  const p=pipes[idx],a=items.find(i=>i.uid===p.a),b=items.find(i=>i.uid===p.b);if(!a||!b)continue;
+  const A=new THREE.Vector3(a.x,a.y+Math.max(a.h*.48,.65),a.z),B=new THREE.Vector3(b.x,b.y+Math.max(b.h*.48,.65),b.z),v=B.clone().sub(A);
+  for(const [point,dir] of [[A,v],[B,v.clone().negate()]]){
+   const flange=new THREE.Mesh(new THREE.TorusGeometry(.18,.045,8,18),silver);flange.position.copy(point);flange.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),dir.clone().normalize());scene.add(flange);pipeMeshes.push(flange);
+  }
+  if(idx%3===0){const mid=A.clone().add(B).multiplyScalar(.5),stem=new THREE.Mesh(new THREE.CylinderGeometry(.045,.045,.42,10),edge);stem.position.copy(mid).add(new THREE.Vector3(0,.28,0));scene.add(stem);const wheel=new THREE.Mesh(new THREE.TorusGeometry(.22,.035,8,20),yellow);wheel.position.copy(mid).add(new THREE.Vector3(0,.52,0));scene.add(wheel);pipeMeshes.push(stem,wheel)}
+ }
+ umRebuildSite();
+};
+const umTemplateBeforeEngineering=template;
+template=function(kind){
+ umTemplateBeforeEngineering(kind);
+ if(kind==='reference'){
+  // Spread the reference installation to leave working, maintenance and access clearances.
+  items.forEach(it=>{it.x*=1.18;it.z*=1.12;it.y=terrainOn?terrainHeight(it.x,it.z):0;rebuild(it)});
+  project.name='Umfazo Reference Gold Plant · Preloaded Site';
+  redraw();fit();
+ }
+ umRebuildSite();
+};
+const umExportBOQBase=exportBOQ;
+exportBOQ=function(){
+ const rows=[['SECTION','Tag / ID','Description','Qty','Width m','Height m','Length / Dia m','Motor kW','Duty / Service','X m','Elevation m','Z m','Notes']];
+ items.forEach(i=>rows.push(['Equipment',i.tag||i.uid,i.name,1,i.w,i.h,i.d,i.kw||'',i.duty||'',i.x,i.y,i.z,i.notes||'']));
+ pipes.forEach((p,n)=>{const a=items.find(i=>i.uid===p.a),b=items.find(i=>i.uid===p.b);if(a&&b)rows.push(['Piping','PL-'+String(n+1).padStart(3,'0'),a.tag+' to '+b.tag,1,'','','','','Concept process/service line',a.x,a.y,a.z,'Route to '+b.tag+'; pipe diameter/material to be engineered'])});
+ rows.push(['Site works','CIV-001','Equipment concrete plinths',items.length,'','','','','Preliminary allowance','','','','Confirm geotechnical and structural design']);
+ rows.push(['Structural','STR-001','Pipe rack / access steelwork',1,'','','','','Preliminary allowance','','','','Member sizes and connections require engineering']);
+ rows.push(['Site works','CIV-002','Access roads and graded hardstand',1,'','','','','Conceptual quantity','','','','Survey and earthworks take-off required']);
+ const csv=rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\n');
+ dl('umfazo-preliminary-equipment-piping-civil-boq.csv',csv,'text/csv');toast('Preliminary equipment, piping and site BOQ exported');
+};
+
+
 function init(){scene=new THREE.Scene();scene.background=new THREE.Color(0x9ab3c0);scene.fog=new THREE.Fog(0x9ab3c0,110,240);camera=new THREE.PerspectiveCamera(45,1,.1,600);camera.position.set(38,35,42);const lowPower=matchMedia('(max-width: 900px)').matches||navigator.hardwareConcurrency<=4;renderer=new THREE.WebGLRenderer({antialias:!lowPower,powerPreference:'high-performance',stencil:false});renderer.setPixelRatio(Math.min(devicePixelRatio,lowPower?1.25:1.6));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;$('canvas').appendChild(renderer.domElement);let fallback=$('canvasFallback');if(fallback)fallback.remove();controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.06;controls.maxPolarAngle=Math.PI*.48;controls.minDistance=8;controls.maxDistance=220;scene.add(new THREE.HemisphereLight(0xe2f2ff,0x46513c,2.1));let sun=new THREE.DirectionalLight(0xffe3bd,3.2);sun.position.set(-35,65,25);sun.castShadow=true;sun.shadow.mapSize.set(lowPower?512:1024,lowPower?512:1024);sun.shadow.camera.left=-90;sun.shadow.camera.right=90;sun.shadow.camera.top=90;sun.shadow.camera.bottom=-90;scene.add(sun);let fill=new THREE.DirectionalLight(0xa9c8d9,.7);fill.position.set(30,22,-40);scene.add(fill);makeTerrain();let grid=new THREE.GridHelper(120,120,0x66776c,0x879489);grid.position.y=.04;grid.material.transparent=true;grid.material.opacity=.16;scene.add(grid);plane=new THREE.Plane(new THREE.Vector3(0,1,0),0);ray=new THREE.Raycaster();renderer.domElement.addEventListener('pointerdown',down);renderer.domElement.addEventListener('pointermove',move);renderer.domElement.addEventListener('pointerup',up);window.addEventListener('resize',resize);let lastRender=0;function loop(now=0){requestAnimationFrame(loop);if(now-lastRender<(lowPower?33:22))return;let dt=Math.min(.05,Math.max(0,(now-lastFrame)/1000));lastFrame=now;lastRender=now;controls.update();animatePlant(dt);renderer.render(scene,camera)}resize();loop();try{let s=JSON.parse(localStorage.getItem('umfazo-plant-project'));if(s){project={...project,...(s.project||{})};project={oreTonnes:250000,solids:40,solidSG:2.7,residence:24,tankVolume:100,bwi:15,feedSize:10000,productSize:150,millEfficiency:90,...project};if(!ores[project.ore])project.ore='Oxide';visualStyle=s.visualStyle||'detailed';if(s.engineering)Object.assign(engineeringBasis,s.engineering);window.umfazoEngineeringResults=s.engineeringResults||{};$('visualStyle').textContent=visualStyle==='detailed'?'Detailed 3D':'Schematic';items=s.equipment||[];items.forEach(it=>{if(it.running===undefined)it.running=false});pipes=s.pipes||[];if(Array.isArray(s.surveyPoints)&&s.surveyPoints.length>=3){buildSurveyGrid(s.surveyPoints.map(p=>({x:p.x,z:p.z,y:p.y})));makeTerrain()}items.forEach(rebuild);redraw()}}catch(e){}drawInspector()}
 function resize(){if(!renderer)return;let r=$('canvas').getBoundingClientRect();if(!r.width||!r.height)return;camera.aspect=r.width/r.height;camera.updateProjectionMatrix();renderer.setSize(r.width,r.height,false)}
 function buildLibrary(filter=''){let root=$('library');root.innerHTML='';[...new Set(lib.map(x=>x.cat))].forEach(cat=>{let ds=lib.filter(x=>x.cat===cat&&(!filter||(x.name+' '+x.cat).toLowerCase().includes(filter)));if(!ds.length)return;let sec=document.createElement('div');sec.className='group';sec.innerHTML='<div class="gname">'+esc(cat.toUpperCase())+'</div><div class="items">'+ds.map(d=>'<button class="equip" data-id="'+d.id+'"><i>'+d.icon+'</i><b>'+esc(d.name)+'</b><small>'+d.w+' × '+d.h+' m</small></button>').join('')+'</div>';root.appendChild(sec)});}
