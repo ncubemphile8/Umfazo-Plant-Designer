@@ -555,14 +555,15 @@ model=function(it){
 const umRedrawBeforeEngineering=redraw;
 redraw=function(){
  umRedrawBeforeEngineering();
+ const umPipeSilver=mat(0xb7c0bc,.72,.3),umPipeEdge=mat(0x313b3e,.78,.32),umPipeYellow=mat(0xe1ae39,.58,.34);
  // Add flanged joints and valve operators on process pipe endpoints without disturbing flow animation.
  for(let idx=0;idx<pipes.length;idx++){
   const p=pipes[idx],a=items.find(i=>i.uid===p.a),b=items.find(i=>i.uid===p.b);if(!a||!b)continue;
   const A=new THREE.Vector3(a.x,a.y+Math.max(a.h*.48,.65),a.z),B=new THREE.Vector3(b.x,b.y+Math.max(b.h*.48,.65),b.z),v=B.clone().sub(A);
   for(const [point,dir] of [[A,v],[B,v.clone().negate()]]){
-   const flange=new THREE.Mesh(new THREE.TorusGeometry(.18,.045,8,18),silver);flange.position.copy(point);flange.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),dir.clone().normalize());scene.add(flange);pipeMeshes.push(flange);
+   const flange=new THREE.Mesh(new THREE.TorusGeometry(.18,.045,8,18),umPipeSilver);flange.position.copy(point);flange.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),dir.clone().normalize());scene.add(flange);pipeMeshes.push(flange);
   }
-  if(idx%3===0){const mid=A.clone().add(B).multiplyScalar(.5),stem=new THREE.Mesh(new THREE.CylinderGeometry(.045,.045,.42,10),edge);stem.position.copy(mid).add(new THREE.Vector3(0,.28,0));scene.add(stem);const wheel=new THREE.Mesh(new THREE.TorusGeometry(.22,.035,8,20),yellow);wheel.position.copy(mid).add(new THREE.Vector3(0,.52,0));scene.add(wheel);pipeMeshes.push(stem,wheel)}
+  if(idx%3===0){const mid=A.clone().add(B).multiplyScalar(.5),stem=new THREE.Mesh(new THREE.CylinderGeometry(.045,.045,.42,10),umPipeEdge);stem.position.copy(mid).add(new THREE.Vector3(0,.28,0));scene.add(stem);const wheel=new THREE.Mesh(new THREE.TorusGeometry(.22,.035,8,20),umPipeYellow);wheel.position.copy(mid).add(new THREE.Vector3(0,.52,0));scene.add(wheel);pipeMeshes.push(stem,wheel)}
  }
  umRebuildSite();
 };
